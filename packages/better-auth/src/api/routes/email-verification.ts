@@ -51,9 +51,10 @@ export async function sendVerificationEmailFn(
 		undefined,
 		ctx.context.options.emailVerification?.expiresIn,
 	);
-	const url = `${ctx.context.baseURL}/verify-email?token=${token}&callbackURL=${
-		ctx.body.callbackURL || "/"
-	}`;
+	const callbackURL = ctx.body.callbackURL
+		? encodeURIComponent(ctx.body.callbackURL)
+		: encodeURIComponent("/");
+	const url = `${ctx.context.baseURL}/verify-email?token=${token}&callbackURL=${callbackURL}`;
 	await ctx.context.options.emailVerification.sendVerificationEmail(
 		{
 			user: user,
@@ -68,13 +69,14 @@ export const sendVerificationEmail = createAuthEndpoint(
 	{
 		method: "POST",
 		body: z.object({
-			email: z
-				.string()
-				.email()
-				.describe("The email to send the verification email to"),
+			email: z.email().meta({
+				description: "The email to send the verification email to",
+			}),
 			callbackURL: z
 				.string()
-				.describe("The URL to use for email verification callback")
+				.meta({
+					description: "The URL to use for email verification callback",
+				})
 				.optional(),
 		}),
 		metadata: {
@@ -189,10 +191,14 @@ export const verifyEmail = createAuthEndpoint(
 	{
 		method: "GET",
 		query: z.object({
-			token: z.string().describe("The token to verify the email"),
+			token: z.string().meta({
+				description: "The token to verify the email",
+			}),
 			callbackURL: z
 				.string()
-				.describe("The URL to redirect to after email verification")
+				.meta({
+					description: "The URL to redirect to after email verification",
+				})
 				.optional(),
 		}),
 		use: [originCheck((ctx) => ctx.query.callbackURL)],
@@ -354,14 +360,13 @@ export const verifyEmail = createAuthEndpoint(
 			);
 
 			//send verification email to the new email
+			const updateCallbackURL = ctx.query.callbackURL
+				? encodeURIComponent(ctx.query.callbackURL)
+				: encodeURIComponent("/");
 			await ctx.context.options.emailVerification?.sendVerificationEmail?.(
 				{
 					user: updatedUser,
-					url: `${
-						ctx.context.baseURL
-					}/verify-email?token=${newToken}&callbackURL=${
-						ctx.query.callbackURL || "/"
-					}`,
+					url: `${ctx.context.baseURL}/verify-email?token=${newToken}&callbackURL=${updateCallbackURL}`,
 					token: newToken,
 				},
 				ctx.request,
