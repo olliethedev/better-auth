@@ -962,6 +962,140 @@ importers:
         specifier: ^3.5.18
         version: 3.5.19(typescript@5.9.2)
 
+  packages/better-db/adapter-drizzle:
+    dependencies:
+      better-auth:
+        specifier: workspace:*
+        version: link:../../better-auth
+      drizzle-orm:
+        specifier: ^0.30.0
+        version: 0.30.10(@cloudflare/workers-types@4.20250903.0)(@libsql/client@0.15.14)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.5)(@types/react@19.1.12)(better-sqlite3@12.2.0)(bun-types@1.2.21(@types/react@19.1.12))(kysely@0.28.5)(mysql2@3.14.4)(pg@8.16.3)(postgres@3.4.7)(react@19.1.1)
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.2
+      unbuild:
+        specifier: 'catalog:'
+        version: 3.6.1(sass@1.90.0)(typescript@5.9.2)(vue@3.5.19(typescript@5.9.2))
+
+  packages/better-db/adapter-kysely:
+    dependencies:
+      better-auth:
+        specifier: workspace:*
+        version: link:../../better-auth
+      kysely:
+        specifier: ^0.27.0
+        version: 0.27.6
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.2
+      unbuild:
+        specifier: 'catalog:'
+        version: 3.6.1(sass@1.90.0)(typescript@5.9.2)(vue@3.5.19(typescript@5.9.2))
+
+  packages/better-db/adapter-memory:
+    dependencies:
+      better-auth:
+        specifier: workspace:*
+        version: link:../../better-auth
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.2
+      unbuild:
+        specifier: 'catalog:'
+        version: 3.6.1(sass@1.90.0)(typescript@5.9.2)(vue@3.5.19(typescript@5.9.2))
+
+  packages/better-db/adapter-mongodb:
+    dependencies:
+      better-auth:
+        specifier: workspace:*
+        version: link:../../better-auth
+      mongodb:
+        specifier: ^6.0.0
+        version: 6.18.0
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.2
+      unbuild:
+        specifier: 'catalog:'
+        version: 3.6.1(sass@1.90.0)(typescript@5.9.2)(vue@3.5.19(typescript@5.9.2))
+
+  packages/better-db/adapter-prisma:
+    dependencies:
+      '@prisma/client':
+        specifier: ^5.0.0
+        version: 5.22.0(prisma@5.22.0)
+      better-auth:
+        specifier: workspace:*
+        version: link:../../better-auth
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.2
+      unbuild:
+        specifier: 'catalog:'
+        version: 3.6.1(sass@1.90.0)(typescript@5.9.2)(vue@3.5.19(typescript@5.9.2))
+
+  packages/better-db/cli:
+    dependencies:
+      '@better-auth/cli':
+        specifier: workspace:*
+        version: link:../../cli
+      '@better-db/core':
+        specifier: workspace:*
+        version: link:../core
+      chalk:
+        specifier: ^5.6.2
+        version: 5.6.2
+      commander:
+        specifier: ^12.1.0
+        version: 12.1.0
+    devDependencies:
+      tsx:
+        specifier: ^4.20.5
+        version: 4.20.5
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.2
+      unbuild:
+        specifier: 'catalog:'
+        version: 3.6.1(sass@1.90.0)(typescript@5.9.2)(vue@3.5.19(typescript@5.9.2))
+
+  packages/better-db/core:
+    dependencies:
+      '@better-auth/core':
+        specifier: workspace:*
+        version: link:../../core
+      better-auth:
+        specifier: workspace:*
+        version: link:../../better-auth
+      zod:
+        specifier: ^4.1.5
+        version: 4.1.5
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.2
+      unbuild:
+        specifier: 'catalog:'
+        version: 3.6.1(sass@1.90.0)(typescript@5.9.2)(vue@3.5.19(typescript@5.9.2))
+
+  packages/better-db/plugins:
+    dependencies:
+      '@better-db/core':
+        specifier: workspace:*
+        version: link:../core
+    devDependencies:
+      typescript:
+        specifier: 'catalog:'
+        version: 5.9.2
+      unbuild:
+        specifier: 'catalog:'
+        version: 3.6.1(sass@1.90.0)(typescript@5.9.2)(vue@3.5.19(typescript@5.9.2))
+
   packages/cli:
     dependencies:
       '@babel/core':
@@ -7261,6 +7395,86 @@ packages:
     resolution: {integrity: sha512-tCPWVZWZqWVx2XUsVpJRnH9Mx0ClVOf5YUHerZ5so1OKSlqww4zy1R5ksEdGRcO3tM3zj0PYN6V48TbQCL1RfA==}
     hasBin: true
 
+  drizzle-orm@0.30.10:
+    resolution: {integrity: sha512-IRy/QmMWw9lAQHpwbUh1b8fcn27S/a9zMIzqea1WNOxK9/4EB8gIo+FZWLiPXzl2n9ixGSv8BhsLZiOppWEwBw==}
+    peerDependencies:
+      '@aws-sdk/client-rds-data': '>=3'
+      '@cloudflare/workers-types': '>=3'
+      '@electric-sql/pglite': '>=0.1.1'
+      '@libsql/client': '*'
+      '@neondatabase/serverless': '>=0.1'
+      '@op-engineering/op-sqlite': '>=2'
+      '@opentelemetry/api': ^1.4.1
+      '@planetscale/database': '>=1'
+      '@types/better-sqlite3': '*'
+      '@types/pg': '*'
+      '@types/react': '>=18'
+      '@types/sql.js': '*'
+      '@vercel/postgres': '>=0.8.0'
+      '@xata.io/client': '*'
+      better-sqlite3: '>=7'
+      bun-types: '*'
+      expo-sqlite: '>=13.2.0'
+      knex: '*'
+      kysely: '*'
+      mysql2: '>=2'
+      pg: '>=8'
+      postgres: '>=3'
+      react: '>=18'
+      sql.js: '>=1'
+      sqlite3: '>=5'
+    peerDependenciesMeta:
+      '@aws-sdk/client-rds-data':
+        optional: true
+      '@cloudflare/workers-types':
+        optional: true
+      '@electric-sql/pglite':
+        optional: true
+      '@libsql/client':
+        optional: true
+      '@neondatabase/serverless':
+        optional: true
+      '@op-engineering/op-sqlite':
+        optional: true
+      '@opentelemetry/api':
+        optional: true
+      '@planetscale/database':
+        optional: true
+      '@types/better-sqlite3':
+        optional: true
+      '@types/pg':
+        optional: true
+      '@types/react':
+        optional: true
+      '@types/sql.js':
+        optional: true
+      '@vercel/postgres':
+        optional: true
+      '@xata.io/client':
+        optional: true
+      better-sqlite3:
+        optional: true
+      bun-types:
+        optional: true
+      expo-sqlite:
+        optional: true
+      knex:
+        optional: true
+      kysely:
+        optional: true
+      mysql2:
+        optional: true
+      pg:
+        optional: true
+      postgres:
+        optional: true
+      react:
+        optional: true
+      sql.js:
+        optional: true
+      sqlite3:
+        optional: true
+
   drizzle-orm@0.33.0:
     resolution: {integrity: sha512-SHy72R2Rdkz0LEq0PSG/IdvnT3nGiWuRk+2tXZQ90GVq/XQhpCzu/EFT3V2rox+w8MlkBQxifF8pCStNYnERfA==}
     peerDependencies:
@@ -9054,6 +9268,10 @@ packages:
     peerDependenciesMeta:
       postgres:
         optional: true
+
+  kysely@0.27.6:
+    resolution: {integrity: sha512-FIyV/64EkKhJmjgC0g2hygpBv5RNWVPyNCqSAD7eTCv6eFWNIi4PN1UvdSJGicN/o35bnevgis4Y0UDC0qi8jQ==}
+    engines: {node: '>=14.0.0'}
 
   kysely@0.28.5:
     resolution: {integrity: sha512-rlB0I/c6FBDWPcQoDtkxi9zIvpmnV5xoIalfCMSMCa7nuA6VGA3F54TW9mEgX4DVf10sXAWCF5fDbamI/5ZpKA==}
@@ -14938,7 +15156,7 @@ snapshots:
       postcss: 8.4.49
       resolve-from: 5.0.0
     optionalDependencies:
-      expo: 54.0.10(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.8)(graphql@16.11.0)(react-native@0.80.2(@babel/core@7.28.4)(@react-native-community/cli@20.0.1(typescript@5.9.2))(@types/react@19.1.12)(react@19.1.1))(react@19.1.1)
+      expo: 54.0.10(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.8)(graphql@16.11.0)(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@20.0.1(typescript@5.9.2))(@react-native/metro-config@0.81.0(@babel/core@7.28.4))(@types/react@19.1.12)(react@19.1.1))(react@19.1.1)
     transitivePeerDependencies:
       - bufferutil
       - supports-color
@@ -15023,7 +15241,7 @@ snapshots:
       '@expo/json-file': 10.0.7
       '@react-native/normalize-colors': 0.81.4
       debug: 4.4.1
-      expo: 54.0.10(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.8)(graphql@16.11.0)(react-native@0.80.2(@babel/core@7.28.4)(@react-native-community/cli@20.0.1(typescript@5.9.2))(@types/react@19.1.12)(react@19.1.1))(react@19.1.1)
+      expo: 54.0.10(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.8)(graphql@16.11.0)(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@20.0.1(typescript@5.9.2))(@react-native/metro-config@0.81.0(@babel/core@7.28.4))(@types/react@19.1.12)(react@19.1.1))(react@19.1.1)
       resolve-from: 5.0.0
       semver: 7.7.2
       xml2js: 0.6.0
@@ -17180,9 +17398,7 @@ snapshots:
       metro-runtime: 0.83.1
     transitivePeerDependencies:
       - '@babel/core'
-      - bufferutil
       - supports-color
-      - utf-8-validate
     optional: true
 
   '@react-native/normalize-colors@0.74.89': {}
@@ -19182,7 +19398,7 @@ snapshots:
       resolve-from: 5.0.0
     optionalDependencies:
       '@babel/runtime': 7.28.4
-      expo: 54.0.10(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.8)(graphql@16.11.0)(react-native@0.80.2(@babel/core@7.28.4)(@react-native-community/cli@20.0.1(typescript@5.9.2))(@types/react@19.1.12)(react@19.1.1))(react@19.1.1)
+      expo: 54.0.10(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.8)(graphql@16.11.0)(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@20.0.1(typescript@5.9.2))(@react-native/metro-config@0.81.0(@babel/core@7.28.4))(@types/react@19.1.12)(react@19.1.1))(react@19.1.1)
     transitivePeerDependencies:
       - '@babel/core'
       - supports-color
@@ -20228,6 +20444,22 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
+  drizzle-orm@0.30.10(@cloudflare/workers-types@4.20250903.0)(@libsql/client@0.15.14)(@opentelemetry/api@1.9.0)(@types/better-sqlite3@7.6.13)(@types/pg@8.15.5)(@types/react@19.1.12)(better-sqlite3@12.2.0)(bun-types@1.2.21(@types/react@19.1.12))(kysely@0.28.5)(mysql2@3.14.4)(pg@8.16.3)(postgres@3.4.7)(react@19.1.1):
+    optionalDependencies:
+      '@cloudflare/workers-types': 4.20250903.0
+      '@libsql/client': 0.15.14
+      '@opentelemetry/api': 1.9.0
+      '@types/better-sqlite3': 7.6.13
+      '@types/pg': 8.15.5
+      '@types/react': 19.1.12
+      better-sqlite3: 12.2.0
+      bun-types: 1.2.21(@types/react@19.1.12)
+      kysely: 0.28.5
+      mysql2: 3.14.4
+      pg: 8.16.3
+      postgres: 3.4.7
+      react: 19.1.1
+
   drizzle-orm@0.33.0(@cloudflare/workers-types@4.20250903.0)(@libsql/client@0.15.14)(@opentelemetry/api@1.9.0)(@prisma/client@5.22.0(prisma@5.22.0))(@types/better-sqlite3@7.6.13)(@types/pg@8.15.5)(@types/react@19.1.12)(better-sqlite3@12.2.0)(bun-types@1.2.21(@types/react@19.1.12))(kysely@0.28.5)(mysql2@3.14.4)(pg@8.16.3)(postgres@3.4.7)(prisma@5.22.0)(react@19.1.1):
     optionalDependencies:
       '@cloudflare/workers-types': 4.20250903.0
@@ -20744,7 +20976,7 @@ snapshots:
 
   expo-keep-awake@15.0.7(expo@54.0.10)(react@19.1.1):
     dependencies:
-      expo: 54.0.10(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.8)(graphql@16.11.0)(react-native@0.80.2(@babel/core@7.28.4)(@react-native-community/cli@20.0.1(typescript@5.9.2))(@types/react@19.1.12)(react@19.1.1))(react@19.1.1)
+      expo: 54.0.10(@babel/core@7.28.4)(@expo/metro-runtime@6.1.2)(expo-router@6.0.8)(graphql@16.11.0)(react-native@0.81.4(@babel/core@7.28.4)(@react-native-community/cli@20.0.1(typescript@5.9.2))(@react-native/metro-config@0.81.0(@babel/core@7.28.4))(@types/react@19.1.12)(react@19.1.1))(react@19.1.1)
       react: 19.1.1
 
   expo-linking@7.1.7(expo@54.0.10)(react-native@0.80.2(@babel/core@7.28.4)(@react-native-community/cli@20.0.1(typescript@5.9.2))(@types/react@19.1.12)(react@19.1.1))(react@19.1.1):
@@ -22203,6 +22435,8 @@ snapshots:
       kysely: 0.28.5
     optionalDependencies:
       postgres: 3.4.7
+
+  kysely@0.27.6: {}
 
   kysely@0.28.5: {}
 
