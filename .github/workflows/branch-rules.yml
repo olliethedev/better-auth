@@ -10,6 +10,8 @@ on:
 jobs:
   check-branch:
     runs-on: ubuntu-latest
+    # Only run on upstream better-auth repo, not on forks
+    if: github.repository == 'better-auth/better-auth'
     steps:
       - name: Checkout code
         uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
