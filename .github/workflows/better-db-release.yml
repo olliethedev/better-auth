@@ -35,8 +35,8 @@ jobs:
 
       - name: Build packages
         run: |
-          # Build better-auth first (required dependency)
-          pnpm build --filter better-auth --filter "@better-auth/*" --force
+          # Build better-auth first (required dependency for better-db)
+          pnpm build --filter better-auth --force
           
           # Build better-db packages explicitly (force rebuild, no cache)
           pnpm build --filter "@better-db/*" --force
