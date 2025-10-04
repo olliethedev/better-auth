@@ -4,6 +4,8 @@ on:
   push:
     tags:
       - 'better-db-v*'
+  release:
+    types: [published]
 
 permissions:
   contents: write
@@ -42,8 +44,23 @@ jobs:
         id: determine_npm_tag
         shell: bash
         run: |
-          TAG="${GITHUB_REF#refs/tags/better-db-}"
-          if [[ "$TAG" =~ -(next|canary|beta|rc|alpha) ]]; then
+          # Extract version from tag (works for both tag push and release events)
+          if [[ "${{ github.event_name }}" == "release" ]]; then
+            TAG="${{ github.event.release.tag_name }}"
+          else
+            TAG="${GITHUB_REF#refs/tags/}"
+          fi
+          
+          # Only process better-db tags
+          if [[ ! "$TAG" =~ ^better-db-v ]]; then
+            echo "Not a better-db release tag, skipping..."
+            exit 0
+          fi
+          
+          # Remove better-db- prefix
+          VERSION="${TAG#better-db-}"
+          
+          if [[ "$VERSION" =~ -(next|canary|beta|rc|alpha) ]]; then
             # Extract pre-release tag (e.g., beta, rc, alpha)
             NPM_TAG=${BASH_REMATCH[1]}
           else
@@ -51,7 +68,7 @@ jobs:
             NPM_TAG="latest"
           fi
           echo "npm_tag=$NPM_TAG" >> $GITHUB_OUTPUT
-          echo "Using npm tag: $NPM_TAG"
+          echo "Using npm tag: $NPM_TAG for version: $VERSION"
 
       - name: Copy README to each package
         run: |
