@@ -136,11 +136,11 @@ if: github.repository == 'better-auth/better-auth'
 - `release.yml` - npm publishing (only for upstream better-auth releases)
 - `main-protect.yml` - upstream branching rules enforcement
 - `branch-rules.yml` - upstream branching rules enforcement
+- `preview.yml` - preview builds (requires pkg-pr-new GitHub App)
 
 **Workflows that run on forks:**
 - `ci.yml` - tests, builds, linting
 - `e2e.yml` - integration tests
-- `preview.yml` - preview builds
 
 **Fork-specific workflows (only run on your fork):**
 - `better-db-release.yml` - Publishes @better-db/* packages to npm
