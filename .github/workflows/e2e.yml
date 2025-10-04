@@ -38,7 +38,11 @@ jobs:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM || github.repository_owner }}
           TURBO_CACHE: remote:rw
-        run: pnpm build
+        run: |
+          # Build all packages including better-db
+          pnpm build
+          # Also build better-db packages (not included in default filter)
+          pnpm build --filter "@better-db/*"
 
       - name: Start Docker Containers
         run: |
@@ -98,7 +102,11 @@ jobs:
           TURBO_TOKEN: ${{ secrets.TURBO_TOKEN }}
           TURBO_TEAM: ${{ vars.TURBO_TEAM || github.repository_owner }}
           TURBO_CACHE: remote:rw
-        run: pnpm build
+        run: |
+          # Build all packages including better-db
+          pnpm build
+          # Also build better-db packages (not included in default filter)
+          pnpm build --filter "@better-db/*"
 
       - name: Start Docker Containers
         run: |
