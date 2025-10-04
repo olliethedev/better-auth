@@ -8,6 +8,8 @@ on:
 jobs:
   check-branch:
     runs-on: ubuntu-latest
+    # Only run on upstream better-auth repo, not on forks
+    if: github.repository == 'better-auth/better-auth'
     steps:
       - name: Check branch
         run: |

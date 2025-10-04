@@ -199,3 +199,8 @@ playwright-report/
 test-results/
 
 state.txt
+
+# Better DB - ignore copied READMEs in package directories
+# (README is copied during release from packages/better-db/README.md)
+packages/better-db/*/README.md
+!packages/better-db/README.md

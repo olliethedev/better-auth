@@ -1,9 +1,10 @@
 {
   "name": "@better-db/adapter-mongodb",
-  "version": "1.4.0-beta.6",
+  "version": "1.3.26",
   "description": "MongoDB adapter for better-db",
   "type": "module",
   "license": "MIT",
+  "homepage": "https://github.com/better-auth/better-auth/tree/main/packages/better-db#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/better-auth/better-auth",
@@ -49,6 +50,7 @@
     "unbuild": "catalog:"
   },
   "files": [
-    "dist"
+    "dist",
+    "README.md"
   ]
 }

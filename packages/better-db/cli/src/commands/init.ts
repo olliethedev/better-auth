@@ -4,56 +4,65 @@ import fs from "fs/promises";
 import path from "path";
 
 interface InitOptions {
-  cwd: string;
-  output?: string;
+	cwd: string;
+	output?: string;
 }
 
 async function initAction(options: InitOptions) {
-  try {
-    console.log(chalk.blue("🚀 Better DB Init"));
-    console.log(chalk.gray("Creating a new better-db schema..."));
-    
-    const outputPath = options.output || path.join(options.cwd, "db.ts");
-    
-    // Check if file already exists
-    const exists = await fileExists(outputPath);
-    if (exists) {
-      console.log(chalk.yellow(`⚠️  Schema file already exists: ${outputPath}`));
-      console.log(chalk.gray("Use the --output option to specify a different path."));
-      return;
-    }
+	try {
+		console.log(chalk.blue("🚀 Better DB Init"));
+		console.log(chalk.gray("Creating a new better-db schema..."));
 
-    // Create the example schema
-    const schemaContent = createExampleSchema();
-    
-    await fs.writeFile(outputPath, schemaContent, "utf8");
-    
-    console.log(chalk.green(`✅ Created schema file: ${outputPath}`));
-    console.log();
-    console.log(chalk.blue("Next steps:"));
-    console.log(chalk.gray("1. Edit the schema file to define your tables"));
-    console.log(chalk.gray("2. Run `better-db generate --orm=<prisma|drizzle|kysely>` to generate database files"));
-    console.log();
-    console.log(chalk.yellow("Example usage:"));
-    console.log(chalk.gray("  better-db generate --orm=prisma --output=prisma/schema.prisma"));
-    
-  } catch (error: any) {
-    console.error(chalk.red("❌ Initialization failed:"), error.message);
-    process.exit(1);
-  }
+		const outputPath = options.output || path.join(options.cwd, "db.ts");
+
+		// Check if file already exists
+		const exists = await fileExists(outputPath);
+		if (exists) {
+			console.log(chalk.yellow(`⚠️  Schema file already exists: ${outputPath}`));
+			console.log(
+				chalk.gray("Use the --output option to specify a different path."),
+			);
+			return;
+		}
+
+		// Create the example schema
+		const schemaContent = createExampleSchema();
+
+		await fs.writeFile(outputPath, schemaContent, "utf8");
+
+		console.log(chalk.green(`✅ Created schema file: ${outputPath}`));
+		console.log();
+		console.log(chalk.blue("Next steps:"));
+		console.log(chalk.gray("1. Edit the schema file to define your tables"));
+		console.log(
+			chalk.gray(
+				"2. Run `better-db generate --orm=<prisma|drizzle|kysely>` to generate database files",
+			),
+		);
+		console.log();
+		console.log(chalk.yellow("Example usage:"));
+		console.log(
+			chalk.gray(
+				"  better-db generate --orm=prisma --output=prisma/schema.prisma",
+			),
+		);
+	} catch (error: any) {
+		console.error(chalk.red("❌ Initialization failed:"), error.message);
+		process.exit(1);
+	}
 }
 
 async function fileExists(filePath: string): Promise<boolean> {
-  try {
-    await fs.access(filePath);
-    return true;
-  } catch {
-    return false;
-  }
+	try {
+		await fs.access(filePath);
+		return true;
+	} catch {
+		return false;
+	}
 }
 
 function createExampleSchema(): string {
-  return `import { defineDb } from "@better-db/core";
+	return `import { defineDb } from "@better-db/core";
 
 // Define your database schema
 export const db = defineDb(({ table }) => ({
@@ -97,7 +106,7 @@ export default db;
 }
 
 export const initCommand = new Command("init")
-  .description("Initialize a new better-db schema file")
-  .option("--cwd <dir>", "Current working directory", process.cwd())
-  .option("--output <path>", "Output path for schema file", "db.ts")
-  .action(initAction);
+	.description("Initialize a new better-db schema file")
+	.option("--cwd <dir>", "Current working directory", process.cwd())
+	.option("--output <path>", "Output path for schema file", "db.ts")
+	.action(initAction);

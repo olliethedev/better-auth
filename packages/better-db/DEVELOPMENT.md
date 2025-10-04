@@ -110,12 +110,55 @@ npx better-db generate --config=test-schema.ts --orm=prisma
 
 ## Upstream Sync Process
 
-When Better Auth releases updates:
+### Branching Strategy
 
-1. **Review Changes**: Check Better Auth changelog for adapter/database changes
-2. **Update Dependencies**: Bump `better-auth` version in package.json files  
+This fork maintains `main` branch in sync with better-auth's `main` branch:
+
+```bash
+# One-time setup: Add upstream remote
+git remote add upstream https://github.com/better-auth/better-auth.git
+
+# Sync fork's main with better-auth upstream
+git fetch upstream
+git checkout main
+git merge upstream/main
+```
+
+### GitHub Actions Management
+
+To prevent merge conflicts and allow seamless syncing, workflows that should only run on upstream better-auth (not on forks) have been modified with repository conditionals:
+
+```yaml
+if: github.repository == 'better-auth/better-auth'
+```
+
+**Workflows that skip on forks:**
+- `release.yml` - npm publishing (only for upstream better-auth releases)
+- `main-protect.yml` - upstream branching rules enforcement
+- `branch-rules.yml` - upstream branching rules enforcement
+
+**Workflows that run on forks:**
+- `ci.yml` - tests, builds, linting
+- `e2e.yml` - integration tests
+- `preview.yml` - preview builds
+
+**Fork-specific workflows (only run on your fork):**
+- `better-db-release.yml` - Publishes @better-db/* packages to npm
+  - Triggered by tags matching `better-db-v*`
+  - Automatically determines npm dist-tag (latest, beta, etc.)
+  - Uses inverse condition: `if: github.repository != 'better-auth/better-auth'`
+
+This approach ensures:
+- No merge conflicts when syncing workflows from upstream
+- Fork-specific development workflow remains unaffected
+- Upstream workflows automatically update when syncing
+
+### When Better Auth Releases Updates
+
+1. **Sync Main Branch**: Pull latest changes from better-auth's `main`
+2. **Review Changes**: Check Better Auth changelog for adapter/database changes
 3. **Test Compatibility**: Run integration tests to ensure nothing breaks
-4. **Update Wrappers**: Add any new exports that should be exposed
+4. **Update Wrappers**: Add any new exports that should be exposed in `@better-db/*` packages
 5. **Version Bump**: Update all `@better-db/*` packages to match Better Auth minor version
 6. **Test Generation**: Verify CLI still generates correct schema files
 
@@ -153,12 +196,81 @@ Key files:
 
 ## Release Process
 
+### Automated Release (Recommended)
+
+Better DB uses a tag-based release workflow that automatically publishes to npm.
+
+**Prerequisites:**
+- Add `NPM_TOKEN` secret to your GitHub repository settings
+  - Go to Settings → Secrets and variables → Actions → New repository secret
+  - Create an npm access token at https://www.npmjs.com/settings/tokens
+
+**Release steps:**
+
+```bash
+# 1. Update versions in all better-db packages
+cd packages/better-db
+pnpm version <major|minor|patch> --workspace
+
+# 2. Commit and push version changes
+git add .
+git commit -m "chore: release better-db v1.4.0"
+git push
+
+# 3. Create and push git tag
+git tag better-db-v1.4.0
+git push origin better-db-v1.4.0
+```
+
+The GitHub Action `better-db-release.yml` will automatically:
+- Create a changelog using changelogithub
+- Build all packages
+- Copy `packages/better-db/README.md` to each package directory
+- Publish to npm with appropriate tag and README included
+
+**Tag naming conventions:**
+- Stable releases: `better-db-v1.4.0` → npm tag `latest`
+- Pre-releases: `better-db-v1.4.0-beta.1` → npm tag `beta`
+- Supported pre-release tags: `alpha`, `beta`, `rc`, `canary`, `next`
+
+### Manual Release
+
+If needed, you can manually publish:
+
+```bash
+# 1. Build all packages
+pnpm run build --filter "@better-db/*"
+
+# 2. Publish from each package directory
+cd packages/better-db/core
+pnpm publish --access public --tag latest
+# Repeat for cli, plugins, and each adapter
+```
+
+### Pre-Release Checklist
+
 1. **Test Latest Better Auth**: Ensure compatibility with latest BA version
-2. **Update Versions**: Bump all package versions to match BA minor version
+2. **Update Versions**: Bump all package versions consistently
 3. **Build All Packages**: Verify clean builds for all adapters
 4. **Test CLI**: Verify generation works for all supported ORMs
 5. **Update Docs**: Update README with any API changes
-6. **Publish**: Release all packages simultaneously
+6. **Create Tag**: Push git tag to trigger automated release
+
+## Package README Management
+
+All `@better-db/*` packages share a single README located at `packages/better-db/README.md`.
+
+**How it works:**
+- During the release process, the main README is automatically copied to each package directory
+- Each package's `package.json` includes `"README.md"` in the `files` array
+- The `homepage` field points to the better-db folder on GitHub
+- The `.gitignore` excludes copied READMEs from version control
+
+**Why this approach:**
+- Single source of truth for documentation
+- No duplicate READMEs to maintain
+- Each npm package shows the correct better-db README
+- Users see the full better-db docs instead of the main better-auth README
 
 ## Common Issues
 
