@@ -205,7 +205,24 @@ Better DB uses a tag-based release workflow that automatically publishes to npm.
   - Go to Settings → Secrets and variables → Actions → New repository secret
   - Create an npm access token at https://www.npmjs.com/settings/tokens
 
-**Release steps:**
+**Release Method 1: GitHub UI (Easiest)**
+
+1. Update package versions locally:
+   ```bash
+   cd packages/better-db
+   pnpm version <major|minor|patch> --workspace
+   git add .
+   git commit -m "chore: bump better-db to v1.x.x"
+   git push
+   ```
+
+2. Create release from GitHub:
+   - Go to: https://github.com/[your-username]/better-auth/releases/new
+   - Click "Choose a tag" → Type `better-db-v1.4.0` → "Create new tag on publish"
+   - Add release title and notes
+   - Click "Publish release"
+
+**Release Method 2: Command Line**
 
 ```bash
 # 1. Update versions in all better-db packages
