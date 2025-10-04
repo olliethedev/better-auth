@@ -33,8 +33,19 @@ jobs:
 
       - run: pnpm install
 
-      - name: Build
-        run: pnpm build
+      - name: Build packages
+        run: |
+          # Build better-auth first (required dependency)
+          pnpm build --filter better-auth --filter "@better-auth/*" --force
+          
+          # Build better-db packages explicitly (force rebuild, no cache)
+          pnpm build --filter "@better-db/*" --force
+          
+          # Verify dist folders exist
+          echo "Checking dist folders..."
+          ls -la packages/better-db/core/dist/ || echo "❌ core/dist missing!"
+          ls -la packages/better-db/cli/dist/ || echo "❌ cli/dist missing!"
+          ls -la packages/better-db/plugins/dist/ || echo "❌ plugins/dist missing!"
 
       - name: Determine npm tag
         id: determine_npm_tag
@@ -74,6 +85,20 @@ jobs:
             if [ -d "$dir" ]; then
               echo "Copying README to @better-db/${dir}..."
               cp README.md "$dir/"
+            fi
+          done
+
+      - name: Verify package contents before publishing
+        run: |
+          cd packages/better-db
+          for dir in core cli plugins adapter-*; do
+            if [ -d "$dir" ]; then
+              echo "=== Checking @better-db/${dir} ==="
+              cd "$dir"
+              echo "Files to be published:"
+              npm pack --dry-run
+              echo ""
+              cd ..
             fi
           done
 
