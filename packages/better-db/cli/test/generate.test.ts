@@ -138,13 +138,13 @@ describe("better-db CLI - Schema Definition", () => {
 		const schema = db.getSchema();
 		const fields = schema.AllTypes!!.fields;
 
-		expect(fields.textField.type).toBe("string");
-		expect(fields.stringField.type).toBe("string");
-		expect(fields.numberField.type).toBe("number");
-		expect(fields.intField.type).toBe("number");
-		expect(fields.boolField.type).toBe("boolean");
-		expect(fields.dateField.type).toBe("date");
-		expect(fields.timestampField.type).toBe("date");
-		expect(fields.jsonField.type).toBe("json");
+		expect(fields.textField!.type).toBe("string");
+		expect(fields.stringField!.type).toBe("string");
+		expect(fields.numberField!.type).toBe("number");
+		expect(fields.intField!.type).toBe("number");
+		expect(fields.boolField!.type).toBe("boolean");
+		expect(fields.dateField!.type).toBe("date");
+		expect(fields.timestampField!.type).toBe("date");
+		expect(fields.jsonField!.type).toBe("json");
 	});
 });
