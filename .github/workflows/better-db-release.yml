@@ -1,9 +1,6 @@
 name: Better DB Release
 
 on:
-  push:
-    tags:
-      - 'better-db-v*'
   release:
     types: [published]
 

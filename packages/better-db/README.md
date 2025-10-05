@@ -41,17 +41,17 @@ import { defineDb } from "@better-db/core";
 
 export const db = defineDb(({ table }) => ({
   Post: table("post", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),  // Automatically becomes primary key
     title: t.text().notNull(),
     content: t.text().notNull(),
     published: t.boolean().defaultValue(false),
-    authorId: t.text().notNull().index(),
+    authorId: t.text().notNull(),
     createdAt: t.timestamp().defaultNow(),
     updatedAt: t.timestamp().defaultNow(),
   })),
 
   Author: table("author", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),  // Automatically becomes primary key
     name: t.text().notNull(),
     email: t.text().notNull().unique(),
     bio: t.text().nullable(),
@@ -79,19 +79,152 @@ npx better-db generate --orm=kysely --output=src/db/types.ts
 
 ### Use the Adapter
 
+Create an adapter instance to interact with your database:
+
 ```typescript
-import { createPrismaAdapter } from "@better-db/adapter-prisma";
+import { prismaAdapter } from "@better-db/adapter-prisma";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
-const adapter = createPrismaAdapter(prisma);
 
-// Use the adapter with your database operations
-const posts = await adapter.findMany({
-  model: "Post",
-  where: { published: true }
+// Create adapter instance
+const adapter = prismaAdapter(prisma)(/* betterAuthOptions */);
+```
+
+## Database Operations
+
+Better DB uses Better Auth's adapter pattern for database operations. All adapters provide a consistent API regardless of your underlying database.
+
+### Creating Records
+
+```typescript
+import { prismaAdapter } from "@better-db/adapter-prisma";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+const adapter = prismaAdapter(prisma)({});
+
+// Create a new post
+const newPost = await adapter.create({
+  model: "post",
+  data: {
+    title: "My First Post",
+    content: "Hello World!",
+    published: true,
+    authorId: "user-123",
+  },
 });
 ```
+
+### Reading Records
+
+```typescript
+// Find a single record
+const post = await adapter.findOne({
+  model: "post",
+  where: [{ field: "id", value: "post-123" }],
+});
+
+// Find multiple records
+const publishedPosts = await adapter.findMany({
+  model: "post",
+  where: [{ field: "published", value: true }],
+  limit: 10,
+  offset: 0,
+});
+
+// Find with specific fields
+const posts = await adapter.findMany({
+  model: "post",
+  select: ["id", "title", "createdAt"],
+});
+
+// Count records
+const count = await adapter.count({
+  model: "post",
+  where: [{ field: "published", value: true }],
+});
+```
+
+### Updating Records
+
+```typescript
+// Update a single record
+const updated = await adapter.update({
+  model: "post",
+  where: [{ field: "id", value: "post-123" }],
+  update: {
+    title: "Updated Title",
+    published: true,
+  },
+});
+
+// Update multiple records
+const count = await adapter.updateMany({
+  model: "post",
+  where: [{ field: "authorId", value: "user-123" }],
+  update: {
+    published: false,
+  },
+});
+```
+
+### Deleting Records
+
+```typescript
+// Delete a single record
+await adapter.delete({
+  model: "post",
+  where: [{ field: "id", value: "post-123" }],
+});
+
+// Delete multiple records
+const deletedCount = await adapter.deleteMany({
+  model: "post",
+  where: [{ field: "published", value: false }],
+});
+```
+
+### Complex Queries
+
+```typescript
+// Multiple where conditions (AND logic)
+const posts = await adapter.findMany({
+  model: "post",
+  where: [
+    { field: "published", value: true },
+    { field: "authorId", value: "user-123" },
+  ],
+  sortBy: {
+    field: "createdAt",
+    direction: "desc",
+  },
+  limit: 20,
+});
+
+// With relationships (if supported by adapter)
+const authors = await adapter.findMany({
+  model: "author",
+  where: [{ field: "email", value: "user@example.com", operator: "contains" }],
+});
+```
+
+### Adapter Methods Reference
+
+All adapters provide these methods:
+
+| Method | Description | Returns |
+|--------|-------------|---------|
+| `create` | Insert new record | Created record |
+| `update` | Update single record | Updated record |
+| `updateMany` | Update multiple records | Count of updated records |
+| `delete` | Delete single record | `void` |
+| `deleteMany` | Delete multiple records | Count of deleted records |
+| `findOne` | Find single record | Record or `null` |
+| `findMany` | Find multiple records | Array of records |
+| `count` | Count records | Number |
+
+For detailed adapter documentation, see [Better Auth Adapter Guide](https://www.better-auth.com/docs/guides/create-a-db-adapter).
 
 ## Field Types & Modifiers
 
@@ -128,16 +261,13 @@ table("example", (t) => ({
 
 ```typescript
 table("example", (t) => ({
-  // Primary key
-  id: t.id().primaryKey(),
+  // ID field (automatically becomes primary key by convention)
+  id: t.id(),
   
   // Constraints
   title: t.text().notNull(),
   subtitle: t.text().nullable(),
   email: t.text().unique(),
-  
-  // Indexes
-  userId: t.text().index(),
   
   // Default values
   isPublished: t.boolean().defaultValue(false),
@@ -147,6 +277,9 @@ table("example", (t) => ({
   authorId: t.text().references("author"),
   categoryId: t.text().references("category", "id"),
 }))
+```
+
+**Convention:** Fields named `id` are automatically treated as primary keys during migration generation. No explicit `primaryKey()` modifier needed!
 ```
 
 ## Plugin System
@@ -177,13 +310,13 @@ import { createDbPlugin } from "@better-db/core";
 
 export const tagsPlugin = createDbPlugin("tags", ({ table }) => ({
   Tag: table("tag", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),
     name: t.text().notNull().unique(),
     color: t.text().nullable(),
   })),
   
   PostTag: table("post_tag", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),
     postId: t.text().notNull().references("post"),
     tagId: t.text().notNull().references("tag"),
   })),
@@ -202,9 +335,16 @@ const db = defineDb(({ table }) => ({
 Create a new schema file:
 
 ```bash
+# Create db.ts in current directory
 npx better-db init
-npx better-db init --output=src/database.ts
+
+# Create in custom location
+npx better-db init --output=src/database/schema.ts
 ```
+
+**Options:**
+- `--output <path>` - Where to create the schema file (default: `db.ts`)
+- `--cwd <dir>` - Working directory (default: current directory)
 
 ### Generate
 
@@ -220,12 +360,46 @@ npx better-db generate --orm=drizzle --output=src/db/schema.ts
 # Kysely
 npx better-db generate --orm=kysely --output=src/db/types.ts
 
-# Auto-detect ORM and use default paths
+# Custom schema file location
+npx better-db generate --config=src/database/schema.ts --orm=prisma
+
+# Auto-detect ORM and use default paths (looks for db.ts in current directory)
 npx better-db generate
 
 # Skip confirmation prompts
 npx better-db generate --yes
 ```
+
+**Options:**
+- `--config <path>` - Path to your better-db schema file (default: `db.ts`)
+- `--output <path>` - Where to save generated schema
+- `--orm <orm>` - Target ORM: `prisma`, `drizzle`, or `kysely`
+- `--cwd <dir>` - Working directory (default: current directory)
+- `--yes` / `-y` - Skip confirmation prompts
+
+### Migrate
+
+Run database migrations (Kysely adapter only):
+
+```bash
+# Run migrations using default schema (db.ts)
+npx better-db migrate
+
+# Run migrations with custom schema
+npx better-db migrate --config=src/database/schema.ts
+
+# Skip confirmation prompts
+npx better-db migrate --yes
+```
+
+**Options:**
+- `--config <path>` - Path to your better-db schema file (default: `db.ts`)
+- `--cwd <dir>` - Working directory (default: current directory)
+- `--yes` / `-y` - Skip confirmation prompts
+
+**Note:** The `migrate` command only works with Kysely's built-in adapter. For Prisma or Drizzle:
+- **Prisma:** Use `npx prisma migrate dev` or `npx prisma db push`
+- **Drizzle:** Use `npx drizzle-kit push` or `npx drizzle-kit migrate`
 
 ## Available Adapters
 
@@ -335,6 +509,99 @@ If you're already using Better Auth but only need the database functionality:
    npx better-db generate
    ```
 
+## Complete Workflow Example
+
+Here's a complete example showing schema definition, generation, and querying:
+
+### 1. Define Your Schema
+
+```typescript
+// db.ts
+import { defineDb } from "@better-db/core";
+
+export const db = defineDb(({ table }) => ({
+  Post: table("post", (t) => ({
+    id: t.id(),
+    title: t.text().notNull(),
+    content: t.text().notNull(),
+    published: t.boolean().defaultValue(false),
+    authorId: t.text().notNull(),
+    createdAt: t.timestamp().defaultNow(),
+  })),
+  
+  Author: table("author", (t) => ({
+    id: t.id(),
+    name: t.text().notNull(),
+    email: t.text().notNull().unique(),
+  })),
+}));
+
+export default db;
+```
+
+### 2. Generate Database Schema
+
+```bash
+# Generate Prisma schema
+npx better-db generate --orm=prisma --output=prisma/schema.prisma
+
+# Then run Prisma migrations
+npx prisma migrate dev --name init
+```
+
+### 3. Query Your Database
+
+```typescript
+// app.ts
+import { prismaAdapter } from "@better-db/adapter-prisma";
+import { PrismaClient } from "@prisma/client";
+
+const prisma = new PrismaClient();
+const adapter = prismaAdapter(prisma)({});
+
+// Create an author
+const author = await adapter.create({
+  model: "author",
+  data: {
+    name: "Jane Doe",
+    email: "jane@example.com",
+  },
+});
+
+// Create a post
+const post = await adapter.create({
+  model: "post",
+  data: {
+    title: "Getting Started with Better DB",
+    content: "Better DB makes database management simple...",
+    published: true,
+    authorId: author.id,
+  },
+});
+
+// Query posts
+const publishedPosts = await adapter.findMany({
+  model: "post",
+  where: [{ field: "published", value: true }],
+  sortBy: { field: "createdAt", direction: "desc" },
+});
+
+// Update a post
+await adapter.update({
+  model: "post",
+  where: [{ field: "id", value: post.id }],
+  update: { published: false },
+});
+
+// Count posts by author
+const postCount = await adapter.count({
+  model: "post",
+  where: [{ field: "authorId", value: author.id }],
+});
+
+console.log(`Author has ${postCount} posts`);
+```
+
 ## Examples
 
 ### Blog Platform
@@ -345,7 +612,7 @@ import { commentsPlugin } from "@better-db/plugins";
 
 export const blogDb = defineDb(({ table }) => ({
   Post: table("post", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),
     title: t.text().notNull(),
     slug: t.text().notNull().unique(),
     content: t.text().notNull(),
@@ -359,7 +626,7 @@ export const blogDb = defineDb(({ table }) => ({
   })),
 
   Author: table("author", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),
     name: t.text().notNull(),
     email: t.text().notNull().unique(),
     bio: t.text().nullable(),
@@ -368,7 +635,7 @@ export const blogDb = defineDb(({ table }) => ({
   })),
 
   Category: table("category", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),
     name: t.text().notNull(),
     slug: t.text().notNull().unique(),
     description: t.text().nullable(),
@@ -384,7 +651,7 @@ import { defineDb } from "@better-db/core";
 
 export const storeDb = defineDb(({ table }) => ({
   Product: table("product", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),
     name: t.text().notNull(),
     slug: t.text().notNull().unique(),
     description: t.text().nullable(),
@@ -397,14 +664,14 @@ export const storeDb = defineDb(({ table }) => ({
   })),
 
   Category: table("category", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),
     name: t.text().notNull(),
     slug: t.text().notNull().unique(),
     parentId: t.text().nullable().references("category"),
   })),
 
   Order: table("order", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),
     orderNumber: t.text().notNull().unique(),
     customerId: t.text().notNull().references("customer"),
     status: t.text().notNull().defaultValue("pending"),
@@ -415,7 +682,7 @@ export const storeDb = defineDb(({ table }) => ({
   })),
 
   OrderItem: table("order_item", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),
     orderId: t.text().notNull().references("order"),
     productId: t.text().notNull().references("product"),
     quantity: t.number().notNull(),
@@ -423,7 +690,7 @@ export const storeDb = defineDb(({ table }) => ({
   })),
 
   Customer: table("customer", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),
     email: t.text().notNull().unique(),
     firstName: t.text().nullable(),
     lastName: t.text().nullable(),

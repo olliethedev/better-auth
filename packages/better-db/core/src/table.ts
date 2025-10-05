@@ -9,8 +9,9 @@ export function table(name: string, builder: TableBuilder): DbTable {
 	const fields: Record<string, any> = {};
 
 	// Always add an id field if not explicitly defined
+	// Note: "id" fields automatically become primary keys by Better Auth convention
 	if (!fieldBuilders.id) {
-		fieldBuilders.id = fieldBuilderFactory.id().primaryKey();
+		fieldBuilders.id = fieldBuilderFactory.id();
 	}
 
 	for (const [fieldName, fieldBuilder] of Object.entries(fieldBuilders)) {

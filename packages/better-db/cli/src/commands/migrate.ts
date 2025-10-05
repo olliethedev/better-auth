@@ -4,20 +4,20 @@ import { spawn } from "child_process";
 import fs from "fs/promises";
 import path from "path";
 
-interface GenerateOptions {
+interface MigrateOptions {
 	cwd: string;
 	config?: string;
-	output?: string;
-	orm?: "prisma" | "drizzle" | "kysely";
 	y?: boolean;
 	yes?: boolean;
 }
 
-async function generateAction(options: GenerateOptions) {
+async function migrateAction(options: MigrateOptions) {
 	try {
-		console.log(chalk.blue("🔧 Better DB Generate"));
+		console.log(chalk.blue("🔧 Better DB Migrate"));
 		console.log(
-			chalk.gray("Generating database schema without auth domain models..."),
+			chalk.gray(
+				"Running migrations for database schema (Kysely adapter only)...",
+			),
 		);
 
 		// Validate that we have a better-db schema file
@@ -31,14 +31,14 @@ async function generateAction(options: GenerateOptions) {
 			return;
 		}
 
-		// Create a temporary Better Auth config that filters out auth models
+		// Create a temporary Better Auth config
 		const tempConfigPath = await createTempBetterAuthConfig(
 			schemaPath,
 			options.cwd,
 		);
 
 		try {
-			// Forward to Better Auth CLI with our filtered config
+			// Forward to Better Auth CLI migrate command
 			const baArgs = buildBetterAuthArgs(tempConfigPath, options);
 
 			console.log(chalk.gray(`Running: npx ${baArgs.join(" ")}`));
@@ -53,7 +53,7 @@ async function generateAction(options: GenerateOptions) {
 
 				child.on("close", (code) => {
 					if (code === 0) {
-						console.log(chalk.green("\n✅ Schema generation completed!"));
+						console.log(chalk.green("\n✅ Migration completed!"));
 						resolve();
 					} else {
 						reject(new Error(`Better Auth CLI exited with code ${code}`));
@@ -69,7 +69,7 @@ async function generateAction(options: GenerateOptions) {
 			await fs.unlink(tempConfigPath).catch(() => {});
 		}
 	} catch (error: any) {
-		console.error(chalk.red("❌ Generation failed:"), error.message);
+		console.error(chalk.red("❌ Migration failed:"), error.message);
 		process.exit(1);
 	}
 }
@@ -127,16 +127,12 @@ export default auth;
 
 function buildBetterAuthArgs(
 	configPath: string,
-	options: GenerateOptions,
+	options: MigrateOptions,
 ): string[] {
-	const args = ["@better-auth/cli", "generate"];
+	const args = ["@better-auth/cli", "migrate"];
 
 	args.push("--config", configPath);
 	args.push("--cwd", options.cwd);
-
-	if (options.output) {
-		args.push("--output", options.output);
-	}
 
 	if (options.y || options.yes) {
 		args.push("--yes");
@@ -145,11 +141,11 @@ function buildBetterAuthArgs(
 	return args;
 }
 
-export const generateCommand = new Command("generate")
-	.description("Generate database schema files for your ORM")
+export const migrateCommand = new Command("migrate")
+	.description(
+		"Run database migrations (Kysely adapter only - for Prisma/Drizzle use their native tools)",
+	)
 	.option("--cwd <dir>", "Current working directory", process.cwd())
 	.option("--config <path>", "Path to better-db schema file")
-	.option("--output <path>", "Output path for generated files")
-	.option("--orm <orm>", "Target ORM (prisma, drizzle, kysely)")
 	.option("-y, --yes", "Skip confirmation prompts")
-	.action(generateAction);
+	.action(migrateAction);
