@@ -23,6 +23,7 @@
   "scripts": {
     "build": "unbuild --clean",
     "stub": "unbuild --stub",
+    "test": "vitest",
     "typecheck": "tsc --project tsconfig.json"
   },
   "main": "./dist/index.cjs",
@@ -46,7 +47,8 @@
   },
   "devDependencies": {
     "typescript": "catalog:",
-    "unbuild": "catalog:"
+    "unbuild": "catalog:",
+    "vitest": "catalog:"
   },
   "files": [
     "dist",

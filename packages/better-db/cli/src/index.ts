@@ -4,6 +4,7 @@ import { Command } from "commander";
 import chalk from "chalk";
 import { generateCommand } from "./commands/generate";
 import { initCommand } from "./commands/init";
+import { migrateCommand } from "./commands/migrate";
 
 // Handle exit
 process.on("SIGINT", () => process.exit(0));
@@ -15,6 +16,7 @@ async function main() {
 	program
 		.addCommand(generateCommand)
 		.addCommand(initCommand)
+		.addCommand(migrateCommand)
 		.version("1.4.0-beta.6")
 		.description("Better DB CLI - Database utilities without auth domain")
 		.action(() => program.help());

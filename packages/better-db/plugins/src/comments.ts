@@ -15,7 +15,7 @@ import { createDbPlugin } from "@better-db/core";
  */
 export const commentsPlugin = createDbPlugin("comments", ({ table }) => ({
 	Comment: table("comment", (t) => ({
-		id: t.id().primaryKey(),
+		id: t.id(), // Automatically becomes primary key
 		content: t.text().notNull(),
 		authorName: t.text().nullable(), // Optional author name for anonymous comments
 		authorEmail: t.text().nullable(), // Optional email

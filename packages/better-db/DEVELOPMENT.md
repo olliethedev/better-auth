@@ -78,13 +78,16 @@ pnpm run build --filter "@better-db/*"
 ### Testing
 
 ```bash
-# Run integration tests
-cd packages/better-db
-npx tsx test/integration.test.ts
+# Run all better-db tests
+pnpm test --filter "@better-db/*"
 
-# Test CLI functionality
+# Run specific package tests
+pnpm test --filter "@better-db/core"
+pnpm test --filter "@better-db/cli"
+
+# Test CLI functionality manually
 npx better-db init --output=test-schema.ts
-npx better-db generate --config=test-schema.ts --orm=prisma
+npx better-db generate --config=test-schema.ts --orm=prisma --yes
 ```
 
 ### Making Changes
@@ -102,6 +105,7 @@ npx better-db generate --config=test-schema.ts --orm=prisma
    - Modify wrapper logic to filter auth models
    - Update command forwarding to Better Auth CLI
    - Test with various ORMs (Prisma, Drizzle, Kysely)
+   - Available commands: `init`, `generate`, `migrate`
 
 4. **Plugin Changes** (packages/better-db/plugins/):
    - Add new reusable table definitions
@@ -169,25 +173,51 @@ The CLI wrapper works by:
 1. **Parsing Better DB Schema**: Load user's `defineDb()` schema definition
 2. **Converting to Better Auth Format**: Transform to Better Auth plugin schema
 3. **Creating Temporary Config**: Generate a temporary Better Auth config file
-4. **Forwarding to Better Auth CLI**: Run `@better-auth/cli generate` with temp config
+4. **Forwarding to Better Auth CLI**: Run `@better-auth/cli` commands with temp config
 5. **Filtering Auth Models**: Exclude user/session/account tables from output
 6. **Cleanup**: Remove temporary files
 
+### Commands
+
+**`init`** - Create a new better-db schema file
+- Generates a `db.ts` template with example tables
+- Supports custom output path via `--output`
+
+**`generate`** - Generate ORM schema files
+- Forwards to `@better-auth/cli generate`
+- Supports Prisma, Drizzle, and Kysely
+- Uses `spawn` with `stdio: "inherit"` to handle interactive prompts
+- Auto-cleans up temporary config files
+
+**`migrate`** - Run database migrations
+- Forwards to `@better-auth/cli migrate`
+- Only works with Kysely's built-in adapter
+- For Prisma/Drizzle, users should use their native migration tools
+
 Key files:
-- `packages/better-db/cli/src/commands/generate.ts` - Main generation logic
 - `packages/better-db/cli/src/commands/init.ts` - Schema initialization
+- `packages/better-db/cli/src/commands/generate.ts` - Schema generation logic
+- `packages/better-db/cli/src/commands/migrate.ts` - Migration wrapper
 
 ## Testing Strategy
 
 ### Unit Tests
-- Field builder API
-- Schema transformation
-- Plugin composition
+- Field builder API (core/test/)
+- Schema transformation (core/test/)
+- Plugin composition (core/test/)
+- Schema definition and conversion (cli/test/)
 
 ### Integration Tests  
-- End-to-end schema generation for each ORM
-- Plugin system functionality
-- CLI command execution
+- Better DB DSL functionality (core/test/integration.test.ts)
+- Plugin system with multiple plugins (cli/test/generate.test.ts)
+- Field types and modifiers (cli/test/generate.test.ts)
+- References and relationships (cli/test/generate.test.ts)
+
+### CLI Tests
+- Schema creation with defineDb (cli/test/generate.test.ts)
+- Plugin merging (cli/test/generate.test.ts)
+- Field attribute preservation (cli/test/generate.test.ts)
+- All field types (cli/test/generate.test.ts)
 
 ### Compatibility Tests
 - Better Auth version compatibility

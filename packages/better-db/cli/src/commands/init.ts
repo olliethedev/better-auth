@@ -68,18 +68,18 @@ function createExampleSchema(): string {
 export const db = defineDb(({ table }) => ({
   // Example: Blog post table
   Post: table("post", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),  // Automatically becomes primary key
     title: t.text().notNull(),
     content: t.text().notNull(),
     published: t.boolean().defaultValue(false),
-    authorId: t.text().notNull().index(), // Foreign key to author
+    authorId: t.text().notNull(), // Foreign key to author
     createdAt: t.timestamp().defaultNow(),
     updatedAt: t.timestamp().defaultNow(),
   })),
 
   // Example: Author table  
   Author: table("author", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),  // Automatically becomes primary key
     name: t.text().notNull(),
     email: t.text().notNull().unique(),
     bio: t.text().nullable(),
@@ -88,14 +88,14 @@ export const db = defineDb(({ table }) => ({
 
   // Example: Category table with many-to-many relationship
   Category: table("category", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),  // Automatically becomes primary key
     name: t.text().notNull().unique(),
     slug: t.text().notNull().unique(),
   })),
 
   // Junction table for posts-categories relationship
   PostCategory: table("post_category", (t) => ({
-    id: t.id().primaryKey(),
+    id: t.id(),  // Automatically becomes primary key
     postId: t.text().notNull().references("post"),
     categoryId: t.text().notNull().references("category"),
   })),

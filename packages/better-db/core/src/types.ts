@@ -31,11 +31,9 @@ export interface FieldBuilder {
 	json(): FieldBuilder;
 
 	// Modifiers
-	primaryKey(): FieldBuilder;
 	notNull(): FieldBuilder;
 	nullable(): FieldBuilder;
 	unique(): FieldBuilder;
-	index(): FieldBuilder;
 	defaultValue(value: any): FieldBuilder;
 	defaultNow(): FieldBuilder;
 

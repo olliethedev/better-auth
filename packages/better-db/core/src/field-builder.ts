@@ -63,12 +63,6 @@ class FieldBuilderImpl implements FieldBuilder {
 	}
 
 	// Modifiers
-	primaryKey(): FieldBuilder {
-		this.config.primaryKey = true;
-		this.config.required = true;
-		return this;
-	}
-
 	notNull(): FieldBuilder {
 		this.config.required = true;
 		return this;
@@ -81,11 +75,6 @@ class FieldBuilderImpl implements FieldBuilder {
 
 	unique(): FieldBuilder {
 		this.config.unique = true;
-		return this;
-	}
-
-	index(): FieldBuilder {
-		this.config.index = true;
 		return this;
 	}
 
