@@ -68,13 +68,29 @@ Generate schema files for your preferred ORM:
 
 ```bash
 # Generate Prisma schema
-npx better-db generate --orm=prisma --output=prisma/schema.prisma
+npx better-db generate \
+  --config=db.ts \
+  --orm=prisma \
+  --output=prisma/schema.prisma
 
 # Generate Drizzle schema  
-npx better-db generate --orm=drizzle --output=src/db/schema.ts
+npx better-db generate \
+  --config=db.ts \
+  --orm=drizzle \
+  --output=src/db/schema.ts
 
-# Generate Kysely types
-npx better-db generate --orm=kysely --output=src/db/types.ts
+# Generate Kysely migrations
+npx better-db generate \
+  --config=db.ts \
+  --orm=kysely \
+  --output=migrations/schema.sql
+
+# Filter out auth tables (User, Session, etc.)
+npx better-db generate \
+  --config=db.ts \
+  --orm=prisma \
+  --output=prisma/schema.prisma \
+  --filter-auth
 ```
 
 ### Use the Adapter
@@ -352,48 +368,70 @@ Generate ORM schema files:
 
 ```bash
 # Prisma
-npx better-db generate --orm=prisma --output=prisma/schema.prisma
+npx better-db generate \
+  --config=db.ts \
+  --orm=prisma \
+  --output=prisma/schema.prisma
 
 # Drizzle  
-npx better-db generate --orm=drizzle --output=src/db/schema.ts
+npx better-db generate \
+  --config=db.ts \
+  --orm=drizzle \
+  --output=src/db/schema.ts
 
 # Kysely
-npx better-db generate --orm=kysely --output=src/db/types.ts
+npx better-db generate \
+  --config=db.ts \
+  --orm=kysely \
+  --output=migrations/schema.sql
 
-# Custom schema file location
-npx better-db generate --config=src/database/schema.ts --orm=prisma
-
-# Auto-detect ORM and use default paths (looks for db.ts in current directory)
-npx better-db generate
+# Filter out Better Auth default tables (User, Session, etc.)
+npx better-db generate \
+  --config=db.ts \
+  --orm=prisma \
+  --output=schema.prisma \
+  --filter-auth
 
 # Skip confirmation prompts
-npx better-db generate --yes
+npx better-db generate \
+  --config=db.ts \
+  --orm=prisma \
+  --output=schema.prisma \
+  --yes
 ```
 
-**Options:**
-- `--config <path>` - Path to your better-db schema file (default: `db.ts`)
+**Required Options:**
+- `--config <path>` - Path to your better-db schema file
 - `--output <path>` - Where to save generated schema
 - `--orm <orm>` - Target ORM: `prisma`, `drizzle`, or `kysely`
+
+**Optional Flags:**
 - `--cwd <dir>` - Working directory (default: current directory)
 - `--yes` / `-y` - Skip confirmation prompts
+- `--filter-auth` - Remove Better Auth default tables (User, Session, Account, Verification) from output
 
 ### Migrate
 
 Run database migrations (Kysely adapter only):
 
 ```bash
-# Run migrations using default schema (db.ts)
-npx better-db migrate
+# Run migrations
+npx better-db migrate --config=db.ts
 
-# Run migrations with custom schema
-npx better-db migrate --config=src/database/schema.ts
+# With custom database URL
+npx better-db migrate \
+  --config=db.ts \
+  --database-url=postgresql://user:pass@localhost:5432/db
 
 # Skip confirmation prompts
-npx better-db migrate --yes
+npx better-db migrate --config=db.ts --yes
 ```
 
-**Options:**
-- `--config <path>` - Path to your better-db schema file (default: `db.ts`)
+**Required Options:**
+- `--config <path>` - Path to your better-db schema file
+
+**Optional Flags:**
+- `--database-url <url>` - Database connection URL (or use `DATABASE_URL` env var)
 - `--cwd <dir>` - Working directory (default: current directory)
 - `--yes` / `-y` - Skip confirmation prompts
 
@@ -543,7 +581,11 @@ export default db;
 
 ```bash
 # Generate Prisma schema
-npx better-db generate --orm=prisma --output=prisma/schema.prisma
+npx better-db generate \
+  --config=db.ts \
+  --orm=prisma \
+  --output=prisma/schema.prisma \
+  --yes
 
 # Then run Prisma migrations
 npx prisma migrate dev --name init

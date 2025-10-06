@@ -1,155 +1,195 @@
 import { Command } from "commander";
+import { betterAuth } from "better-auth";
+import { memoryAdapter } from "better-auth/adapters/memory";
+import { getAdapter } from "better-auth/db";
+import { createJiti } from "jiti";
 import chalk from "chalk";
-import { spawn } from "child_process";
+import yoctoSpinner from "yocto-spinner";
+import prompts from "prompts";
 import fs from "fs/promises";
 import path from "path";
+import { fileURLToPath } from "url";
+import { filterAuthTables } from "../utils/filter-auth-tables";
 
 interface GenerateOptions {
-	cwd: string;
-	config?: string;
-	output?: string;
-	orm?: "prisma" | "drizzle" | "kysely";
-	y?: boolean;
+	config: string; // REQUIRED
+	output: string; // REQUIRED
+	orm: "prisma" | "drizzle" | "kysely"; // REQUIRED
+	cwd?: string;
 	yes?: boolean;
+	filterAuth?: boolean; // NEW: Filter out Better Auth default tables
 }
 
 async function generateAction(options: GenerateOptions) {
+	console.log(chalk.blue("🔧 Better DB Generate"));
+
+	const cwd = options.cwd || process.cwd();
+	const schemaPath = path.resolve(cwd, options.config);
+	const outputPath = path.resolve(cwd, options.output);
+
+	// 1. Validate schema file exists
 	try {
-		console.log(chalk.blue("🔧 Better DB Generate"));
-		console.log(
-			chalk.gray("Generating database schema without auth domain models..."),
-		);
-
-		// Validate that we have a better-db schema file
-		const schemaPath = options.config || path.join(options.cwd, "db.ts");
-
-		if (!(await fileExists(schemaPath))) {
-			console.error(chalk.red(`Schema file not found: ${schemaPath}`));
-			console.log(
-				chalk.yellow("Run `better-db init` to create a schema file first."),
-			);
-			return;
-		}
-
-		// Create a temporary Better Auth config that filters out auth models
-		const tempConfigPath = await createTempBetterAuthConfig(
-			schemaPath,
-			options.cwd,
-		);
-
-		try {
-			// Forward to Better Auth CLI with our filtered config
-			const baArgs = buildBetterAuthArgs(tempConfigPath, options);
-
-			console.log(chalk.gray(`Running: npx ${baArgs.join(" ")}`));
-
-			// Use spawn to properly handle stdin/stdout/stderr
-			await new Promise<void>((resolve, reject) => {
-				const child = spawn("npx", baArgs, {
-					cwd: options.cwd,
-					env: { ...process.env, NODE_ENV: "development" },
-					stdio: "inherit", // This allows prompts to work!
-				});
-
-				child.on("close", (code) => {
-					if (code === 0) {
-						console.log(chalk.green("\n✅ Schema generation completed!"));
-						resolve();
-					} else {
-						reject(new Error(`Better Auth CLI exited with code ${code}`));
-					}
-				});
-
-				child.on("error", (error) => {
-					reject(error);
-				});
-			});
-		} finally {
-			// Clean up temp file
-			await fs.unlink(tempConfigPath).catch(() => {});
-		}
-	} catch (error: any) {
-		console.error(chalk.red("❌ Generation failed:"), error.message);
+		await fs.access(schemaPath);
+	} catch {
+		console.error(chalk.red(`❌ Schema file not found: ${schemaPath}`));
+		console.log(chalk.yellow("Run `better-db init` to create one."));
 		process.exit(1);
 	}
-}
 
-async function fileExists(filePath: string): Promise<boolean> {
+	// 2. Load schema with jiti (handles TypeScript)
+	const jiti = createJiti(import.meta.url, {
+		interopDefault: true,
+	});
+
+	let dbSchema: any;
 	try {
-		await fs.access(filePath);
-		return true;
-	} catch {
-		return false;
+		const schemaModule = jiti(schemaPath);
+		dbSchema = schemaModule.default || schemaModule;
+	} catch (error: any) {
+		console.error(chalk.red("❌ Failed to load schema:"), error.message);
+		console.log(chalk.yellow("\nTroubleshooting:"));
+		console.log("• Check for syntax errors in schema file");
+		console.log("• Ensure file exports defineDb() result");
+		process.exit(1);
+	}
+
+	// 3. Validate it's a better-db schema
+	if (!dbSchema?.toBetterAuthSchema) {
+		console.error(
+			chalk.red("❌ Invalid schema: must export defineDb() result"),
+		);
+		process.exit(1);
+	}
+
+	// 4. Convert to Better Auth format
+	const betterAuthSchema = dbSchema.toBetterAuthSchema();
+
+	// 5. Create betterAuth instance with schema
+	const auth = betterAuth({
+		database: memoryAdapter({}),
+		plugins: [
+			{
+				id: "better-db-schema",
+				schema: betterAuthSchema,
+			},
+		],
+	});
+
+	const adapter = await getAdapter(auth.options);
+
+	// 6. Import generators dynamically (to avoid TypeScript rootDir issues)
+	const __filename = fileURLToPath(import.meta.url);
+	const __dirname = path.dirname(__filename);
+	const cliGeneratorsPath = path.resolve(
+		__dirname,
+		"../../../../cli/src/generators",
+	);
+
+	// 7. Generate based on explicit ORM parameter
+	const spinner = yoctoSpinner({
+		text: `Generating ${options.orm} schema...`,
+	}).start();
+
+	let result: any;
+	try {
+		if (options.orm === "prisma") {
+			const { generatePrismaSchema } = await import(
+				path.join(cliGeneratorsPath, "prisma.js")
+			);
+			result = await generatePrismaSchema({
+				adapter,
+				options: auth.options,
+				file: outputPath,
+			});
+		} else if (options.orm === "drizzle") {
+			const { generateDrizzleSchema } = await import(
+				path.join(cliGeneratorsPath, "drizzle.js")
+			);
+			result = await generateDrizzleSchema({
+				adapter,
+				options: auth.options,
+				file: outputPath,
+			});
+		} else if (options.orm === "kysely") {
+			const { generateMigrations } = await import(
+				path.join(cliGeneratorsPath, "kysely.js")
+			);
+			result = await generateMigrations({
+				adapter,
+				options: auth.options,
+				file: outputPath,
+			});
+		}
+
+		spinner.stop();
+	} catch (error: any) {
+		spinner.stop();
+		console.error(chalk.red("❌ Generation failed:"), error.message);
+		console.error(error.stack);
+		process.exit(1);
+	}
+
+	// 8. Handle output
+	if (!result?.code) {
+		console.log(chalk.gray("Schema is up to date."));
+		return;
+	}
+
+	// 9. Filter auth tables if requested
+	if (options.filterAuth && result.code) {
+		result.code = filterAuthTables(result.code, options.orm);
+		console.log(
+			chalk.gray(
+				"🧹 Filtered out Better Auth default tables (User, Session, etc.)",
+			),
+		);
+	}
+
+	// 10. Prompt if overwriting (unless --yes)
+	if (result.overwrite && !options.yes) {
+		const response = await prompts({
+			type: "confirm",
+			name: "continue",
+			message: `File ${outputPath} already exists. Overwrite?`,
+			initial: false,
+		});
+
+		if (!response.continue) {
+			console.log(chalk.yellow("Cancelled."));
+			return;
+		}
+	}
+
+	// 11. Write output
+	await fs.writeFile(outputPath, result.code, "utf8");
+	console.log(chalk.green(`✅ Generated ${options.orm} schema: ${outputPath}`));
+
+	// 12. Show next steps
+	console.log(chalk.gray("\nNext steps:"));
+	if (options.orm === "prisma") {
+		console.log(chalk.gray("  1. Review the generated schema"));
+		console.log(chalk.gray("  2. Run: npx prisma migrate dev"));
+	} else if (options.orm === "drizzle") {
+		console.log(chalk.gray("  1. Review the generated schema"));
+		console.log(chalk.gray("  2. Run: npx drizzle-kit push"));
+	} else if (options.orm === "kysely") {
+		console.log(chalk.gray("  1. Review the generated migrations"));
+		console.log(
+			chalk.gray("  2. Apply migrations using your migration runner"),
+		);
 	}
 }
 
-async function createTempBetterAuthConfig(
-	schemaPath: string,
-	cwd: string,
-): Promise<string> {
-	const tempConfigContent = `
-import { betterAuth } from "better-auth";
-import { defineDb } from "@better-db/core";
-
-// Import the better-db schema
-const dbSchema = require("${path.resolve(schemaPath)}");
-
-// Extract the schema and convert to Better Auth format
-const schema = dbSchema.default || dbSchema;
-let betterAuthSchema = {};
-
-if (schema && typeof schema.getSchema === 'function') {
-  betterAuthSchema = schema.getSchema();
-} else if (schema && typeof schema.toBetterAuthSchema === 'function') {
-  betterAuthSchema = schema.toBetterAuthSchema();
-}
-
-// Create a minimal Better Auth config with just the database tables
-export const auth = betterAuth({
-  // Minimal config - no auth features, just database
-  database: {
-    type: "sqlite", // This will be overridden by the adapter
-  },
-  // Convert better-db schema to plugin format
-  plugins: [{
-    id: "better-db-schema",
-    schema: betterAuthSchema
-  }]
-});
-
-export default auth;
-`;
-
-	const tempConfigPath = path.join(cwd, ".better-db-temp-auth.js");
-	await fs.writeFile(tempConfigPath, tempConfigContent, "utf8");
-	return tempConfigPath;
-}
-
-function buildBetterAuthArgs(
-	configPath: string,
-	options: GenerateOptions,
-): string[] {
-	const args = ["@better-auth/cli", "generate"];
-
-	args.push("--config", configPath);
-	args.push("--cwd", options.cwd);
-
-	if (options.output) {
-		args.push("--output", options.output);
-	}
-
-	if (options.y || options.yes) {
-		args.push("--yes");
-	}
-
-	return args;
-}
-
+// Command definition with REQUIRED options
 export const generateCommand = new Command("generate")
 	.description("Generate database schema files for your ORM")
-	.option("--cwd <dir>", "Current working directory", process.cwd())
-	.option("--config <path>", "Path to better-db schema file")
-	.option("--output <path>", "Output path for generated files")
-	.option("--orm <orm>", "Target ORM (prisma, drizzle, kysely)")
+	.requiredOption("--config <path>", "Path to better-db schema file")
+	.requiredOption("--output <path>", "Output path for generated schema")
+	.requiredOption("--orm <orm>", "Target ORM: prisma, drizzle, or kysely")
+	.option("--cwd <dir>", "Working directory", process.cwd())
 	.option("-y, --yes", "Skip confirmation prompts")
+	.option(
+		"--filter-auth",
+		"Filter out Better Auth default tables (User, Session, etc.)",
+	)
 	.action(generateAction);

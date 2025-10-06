@@ -1,151 +1,169 @@
 import { Command } from "commander";
+import { betterAuth } from "better-auth";
+import { getMigrations } from "better-auth/db";
+import { createJiti } from "jiti";
 import chalk from "chalk";
-import { spawn } from "child_process";
+import yoctoSpinner from "yocto-spinner";
+import prompts from "prompts";
 import fs from "fs/promises";
 import path from "path";
 
 interface MigrateOptions {
-	cwd: string;
-	config?: string;
-	y?: boolean;
+	config: string; // REQUIRED
+	databaseUrl?: string; // Optional: for Kysely connection
+	cwd?: string;
 	yes?: boolean;
 }
 
 async function migrateAction(options: MigrateOptions) {
+	console.log(chalk.blue("🔧 Better DB Migrate"));
+	console.log(chalk.yellow("⚠️  Note: This only works with Kysely adapter"));
+	console.log(chalk.gray("For Prisma: use `npx prisma migrate dev`"));
+	console.log(chalk.gray("For Drizzle: use `npx drizzle-kit push`\n"));
+
+	const cwd = options.cwd || process.cwd();
+	const schemaPath = path.resolve(cwd, options.config);
+
+	// 1. Validate schema file exists
 	try {
-		console.log(chalk.blue("🔧 Better DB Migrate"));
+		await fs.access(schemaPath);
+	} catch {
+		console.error(chalk.red(`❌ Schema file not found: ${schemaPath}`));
+		console.log(chalk.yellow("Run `better-db init` to create one."));
+		process.exit(1);
+	}
+
+	// 2. Load schema (same as generate)
+	const jiti = createJiti(import.meta.url, {
+		interopDefault: true,
+	});
+
+	let dbSchema: any;
+	try {
+		const schemaModule = jiti(schemaPath);
+		dbSchema = schemaModule.default || schemaModule;
+	} catch (error: any) {
+		console.error(chalk.red("❌ Failed to load schema:"), error.message);
+		process.exit(1);
+	}
+
+	if (!dbSchema?.toBetterAuthSchema) {
+		console.error(chalk.red("❌ Invalid schema"));
+		process.exit(1);
+	}
+
+	// 3. Convert to Better Auth format
+	const betterAuthSchema = dbSchema.toBetterAuthSchema();
+
+	// 4. Get database URL
+	const databaseUrl = options.databaseUrl || process.env.DATABASE_URL;
+
+	if (!databaseUrl) {
+		console.error(chalk.red("❌ Database connection required"));
 		console.log(
-			chalk.gray(
-				"Running migrations for database schema (Kysely adapter only)...",
-			),
+			chalk.yellow("Set DATABASE_URL env var or use --database-url flag"),
 		);
+		process.exit(1);
+	}
 
-		// Validate that we have a better-db schema file
-		const schemaPath = options.config || path.join(options.cwd, "db.ts");
+	// 5. Create betterAuth instance
+	// Note: Using Kysely adapter for migrations
+	const auth = betterAuth({
+		database: {
+			provider: databaseUrl.startsWith("postgres")
+				? "pg"
+				: databaseUrl.startsWith("mysql")
+					? "mysql"
+					: "sqlite",
+			url: databaseUrl,
+			type: "kysely",
+		} as any, // Type override for Kysely config
+		plugins: [
+			{
+				id: "better-db-schema",
+				schema: betterAuthSchema,
+			},
+		],
+	});
 
-		if (!(await fileExists(schemaPath))) {
-			console.error(chalk.red(`Schema file not found: ${schemaPath}`));
-			console.log(
-				chalk.yellow("Run `better-db init` to create a schema file first."),
-			);
+	// 6. Get migrations
+	const spinner = yoctoSpinner({ text: "Preparing migrations..." });
+	spinner.start();
+	let toBeAdded: any[];
+	let toBeCreated: any[];
+	let runMigrations: () => Promise<void>;
+
+	try {
+		const migrations = await getMigrations(auth.options);
+		toBeAdded = migrations.toBeAdded;
+		toBeCreated = migrations.toBeCreated;
+		runMigrations = migrations.runMigrations;
+		spinner.stop();
+	} catch (error: any) {
+		spinner.stop();
+		console.error(chalk.red("❌ Failed to prepare migrations:"), error.message);
+		console.log(chalk.yellow("\nPossible causes:"));
+		console.log("• Database connection failed");
+		console.log("• Not using Kysely adapter");
+		console.log("• Invalid DATABASE_URL");
+		process.exit(1);
+	}
+
+	// 7. Show pending migrations
+	if (toBeCreated.length === 0 && toBeAdded.length === 0) {
+		console.log(chalk.gray("✓ Database is up to date."));
+		return;
+	}
+
+	console.log(chalk.bold("\n📋 Pending migrations:"));
+	if (toBeCreated.length > 0) {
+		console.log(chalk.green(`  Tables to create: ${toBeCreated.length}`));
+		toBeCreated.forEach((t) => console.log(chalk.gray(`    - ${t.table}`)));
+	}
+	if (toBeAdded.length > 0) {
+		console.log(chalk.yellow(`  Columns to add: ${toBeAdded.length}`));
+		toBeAdded.forEach((c) =>
+			console.log(chalk.gray(`    - ${c.table}.${c.column}`)),
+		);
+	}
+
+	// 8. Confirm
+	if (!options.yes) {
+		const response = await prompts({
+			type: "confirm",
+			name: "continue",
+			message: "Run these migrations?",
+			initial: true,
+		});
+
+		if (!response.continue) {
+			console.log(chalk.yellow("Cancelled."));
 			return;
 		}
+	}
 
-		// Create a temporary Better Auth config
-		const tempConfigPath = await createTempBetterAuthConfig(
-			schemaPath,
-			options.cwd,
-		);
-
-		try {
-			// Forward to Better Auth CLI migrate command
-			const baArgs = buildBetterAuthArgs(tempConfigPath, options);
-
-			console.log(chalk.gray(`Running: npx ${baArgs.join(" ")}`));
-
-			// Use spawn to properly handle stdin/stdout/stderr
-			await new Promise<void>((resolve, reject) => {
-				const child = spawn("npx", baArgs, {
-					cwd: options.cwd,
-					env: { ...process.env, NODE_ENV: "development" },
-					stdio: "inherit", // This allows prompts to work!
-				});
-
-				child.on("close", (code) => {
-					if (code === 0) {
-						console.log(chalk.green("\n✅ Migration completed!"));
-						resolve();
-					} else {
-						reject(new Error(`Better Auth CLI exited with code ${code}`));
-					}
-				});
-
-				child.on("error", (error) => {
-					reject(error);
-				});
-			});
-		} finally {
-			// Clean up temp file
-			await fs.unlink(tempConfigPath).catch(() => {});
-		}
+	// 9. Run migrations
+	const runSpinner = yoctoSpinner({ text: "Running migrations..." });
+	runSpinner.start();
+	try {
+		await runMigrations();
+		runSpinner.stop();
+		console.log(chalk.green("✅ Migrations completed!"));
 	} catch (error: any) {
+		runSpinner.stop();
 		console.error(chalk.red("❌ Migration failed:"), error.message);
 		process.exit(1);
 	}
 }
 
-async function fileExists(filePath: string): Promise<boolean> {
-	try {
-		await fs.access(filePath);
-		return true;
-	} catch {
-		return false;
-	}
-}
-
-async function createTempBetterAuthConfig(
-	schemaPath: string,
-	cwd: string,
-): Promise<string> {
-	const tempConfigContent = `
-import { betterAuth } from "better-auth";
-import { defineDb } from "@better-db/core";
-
-// Import the better-db schema
-const dbSchema = require("${path.resolve(schemaPath)}");
-
-// Extract the schema and convert to Better Auth format
-const schema = dbSchema.default || dbSchema;
-let betterAuthSchema = {};
-
-if (schema && typeof schema.getSchema === 'function') {
-  betterAuthSchema = schema.getSchema();
-} else if (schema && typeof schema.toBetterAuthSchema === 'function') {
-  betterAuthSchema = schema.toBetterAuthSchema();
-}
-
-// Create a minimal Better Auth config with just the database tables
-export const auth = betterAuth({
-  // Minimal config - no auth features, just database
-  database: {
-    type: "sqlite", // This will be overridden by the adapter
-  },
-  // Convert better-db schema to plugin format
-  plugins: [{
-    id: "better-db-schema",
-    schema: betterAuthSchema
-  }]
-});
-
-export default auth;
-`;
-
-	const tempConfigPath = path.join(cwd, ".better-db-temp-auth.js");
-	await fs.writeFile(tempConfigPath, tempConfigContent, "utf8");
-	return tempConfigPath;
-}
-
-function buildBetterAuthArgs(
-	configPath: string,
-	options: MigrateOptions,
-): string[] {
-	const args = ["@better-auth/cli", "migrate"];
-
-	args.push("--config", configPath);
-	args.push("--cwd", options.cwd);
-
-	if (options.y || options.yes) {
-		args.push("--yes");
-	}
-
-	return args;
-}
-
+// Command definition with REQUIRED options
 export const migrateCommand = new Command("migrate")
-	.description(
-		"Run database migrations (Kysely adapter only - for Prisma/Drizzle use their native tools)",
+	.description("Run database migrations (Kysely only)")
+	.requiredOption("--config <path>", "Path to better-db schema file")
+	.option(
+		"--database-url <url>",
+		"Database connection URL (or use DATABASE_URL env var)",
 	)
-	.option("--cwd <dir>", "Current working directory", process.cwd())
-	.option("--config <path>", "Path to better-db schema file")
+	.option("--cwd <dir>", "Working directory", process.cwd())
 	.option("-y, --yes", "Skip confirmation prompts")
 	.action(migrateAction);
