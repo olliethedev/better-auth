@@ -1047,6 +1047,9 @@ importers:
       '@better-db/core':
         specifier: workspace:*
         version: link:../core
+      '@mrleebo/prisma-ast':
+        specifier: ^0.13.0
+        version: 0.13.0
       better-auth:
         specifier: workspace:*
         version: link:../../better-auth
@@ -1059,6 +1062,9 @@ importers:
       jiti:
         specifier: ^2.4.2
         version: 2.6.0
+      prettier:
+        specifier: ^3.6.2
+        version: 3.6.2
       prompts:
         specifier: ^2.4.2
         version: 2.4.2
@@ -17419,9 +17425,7 @@ snapshots:
       metro-runtime: 0.83.1
     transitivePeerDependencies:
       - '@babel/core'
-      - bufferutil
       - supports-color
-      - utf-8-validate
     optional: true
 
   '@react-native/normalize-colors@0.74.89': {}

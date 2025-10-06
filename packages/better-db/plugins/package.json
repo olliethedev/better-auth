@@ -1,6 +1,6 @@
 {
   "name": "@better-db/plugins",
-  "version": "1.3.29",
+  "version": "1.3.30",
   "description": "Plugin utilities and common plugins for better-db",
   "type": "module",
   "license": "MIT",

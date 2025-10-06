@@ -8,8 +8,12 @@ import yoctoSpinner from "yocto-spinner";
 import prompts from "prompts";
 import fs from "fs/promises";
 import path from "path";
-import { fileURLToPath } from "url";
 import { filterAuthTables } from "../utils/filter-auth-tables";
+
+// Import generators from local copy (bundled with our package)
+import { generatePrismaSchema } from "../generators/prisma";
+import { generateDrizzleSchema } from "../generators/drizzle";
+import { generateMigrations } from "../generators/kysely";
 
 interface GenerateOptions {
 	config: string; // REQUIRED
@@ -77,15 +81,7 @@ async function generateAction(options: GenerateOptions) {
 
 	const adapter = await getAdapter(auth.options);
 
-	// 6. Import generators dynamically (to avoid TypeScript rootDir issues)
-	const __filename = fileURLToPath(import.meta.url);
-	const __dirname = path.dirname(__filename);
-	const cliGeneratorsPath = path.resolve(
-		__dirname,
-		"../../../../cli/src/generators",
-	);
-
-	// 7. Generate based on explicit ORM parameter
+	// 6. Generate based on explicit ORM parameter
 	const spinner = yoctoSpinner({
 		text: `Generating ${options.orm} schema...`,
 	}).start();
@@ -93,27 +89,18 @@ async function generateAction(options: GenerateOptions) {
 	let result: any;
 	try {
 		if (options.orm === "prisma") {
-			const { generatePrismaSchema } = await import(
-				path.join(cliGeneratorsPath, "prisma.js")
-			);
 			result = await generatePrismaSchema({
 				adapter,
 				options: auth.options,
 				file: outputPath,
 			});
 		} else if (options.orm === "drizzle") {
-			const { generateDrizzleSchema } = await import(
-				path.join(cliGeneratorsPath, "drizzle.js")
-			);
 			result = await generateDrizzleSchema({
 				adapter,
 				options: auth.options,
 				file: outputPath,
 			});
 		} else if (options.orm === "kysely") {
-			const { generateMigrations } = await import(
-				path.join(cliGeneratorsPath, "kysely.js")
-			);
 			result = await generateMigrations({
 				adapter,
 				options: auth.options,
@@ -129,13 +116,13 @@ async function generateAction(options: GenerateOptions) {
 		process.exit(1);
 	}
 
-	// 8. Handle output
+	// 7. Handle output
 	if (!result?.code) {
 		console.log(chalk.gray("Schema is up to date."));
 		return;
 	}
 
-	// 9. Filter auth tables if requested
+	// 8. Filter auth tables if requested
 	if (options.filterAuth && result.code) {
 		result.code = filterAuthTables(result.code, options.orm);
 		console.log(
@@ -145,7 +132,7 @@ async function generateAction(options: GenerateOptions) {
 		);
 	}
 
-	// 10. Prompt if overwriting (unless --yes)
+	// 9. Prompt if overwriting (unless --yes)
 	if (result.overwrite && !options.yes) {
 		const response = await prompts({
 			type: "confirm",
@@ -160,11 +147,11 @@ async function generateAction(options: GenerateOptions) {
 		}
 	}
 
-	// 11. Write output
+	// 10. Write output
 	await fs.writeFile(outputPath, result.code, "utf8");
 	console.log(chalk.green(`✅ Generated ${options.orm} schema: ${outputPath}`));
 
-	// 12. Show next steps
+	// 11. Show next steps
 	console.log(chalk.gray("\nNext steps:"));
 	if (options.orm === "prisma") {
 		console.log(chalk.gray("  1. Review the generated schema"));
