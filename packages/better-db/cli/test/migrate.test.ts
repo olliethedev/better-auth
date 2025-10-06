@@ -18,7 +18,6 @@ import { defineDb } from "@better-db/core";
 
 export default defineDb(({ table }) => ({
 	Post: table("post", (t) => ({
-		id: t.id(),
 		title: t.text().notNull(),
 		content: t.text().notNull(),
 	})),
@@ -36,7 +35,6 @@ export default defineDb(({ table }) => ({
 	it("should validate schema loading for migrations", async () => {
 		const db = defineDb(({ table }) => ({
 			Post: table("post", (t) => ({
-				id: t.id(),
 				title: t.text().notNull(),
 				content: t.text().notNull(),
 			})),
@@ -53,17 +51,14 @@ export default defineDb(({ table }) => ({
 	it("should handle schema with multiple tables for migrations", () => {
 		const db = defineDb(({ table }) => ({
 			User: table("user", (t) => ({
-				id: t.id(),
 				name: t.text().notNull(),
 				email: t.text().notNull().unique(),
 			})),
 			Post: table("post", (t) => ({
-				id: t.id(),
 				title: t.text().notNull(),
 				userId: t.text().notNull().references("user"),
 			})),
 			Comment: table("comment", (t) => ({
-				id: t.id(),
 				content: t.text().notNull(),
 				postId: t.text().notNull().references("post"),
 			})),
@@ -95,7 +90,6 @@ export default defineDb(({ table }) => ({
 	it("should handle complex schema with defaults and constraints", () => {
 		const db = defineDb(({ table }) => ({
 			Product: table("product", (t) => ({
-				id: t.id(),
 				name: t.text().notNull(),
 				price: t.number().notNull().defaultValue(0),
 				inStock: t.boolean().defaultValue(true),
@@ -116,7 +110,6 @@ export default defineDb(({ table }) => ({
 	it("should handle schema with indexes and unique constraints", () => {
 		const db = defineDb(({ table }) => ({
 			User: table("user", (t) => ({
-				id: t.id(),
 				email: t.text().notNull().unique(),
 				username: t.text().notNull().unique(),
 				phone: t.text().nullable().unique(),

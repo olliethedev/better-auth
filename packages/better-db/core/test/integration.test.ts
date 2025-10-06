@@ -6,7 +6,6 @@ describe("better-db integration", () => {
 	it("should create schema with defineDb DSL", () => {
 		const blogDb = defineDb(({ table }) => ({
 			Post: table("post", (t) => ({
-				id: t.id(), // Automatically becomes primary key
 				title: t.text().notNull(),
 				body: t.text().notNull(),
 				authorId: t.text().notNull(),
@@ -16,7 +15,6 @@ describe("better-db integration", () => {
 			})),
 
 			Author: table("author", (t) => ({
-				id: t.id(), // Automatically becomes primary key
 				name: t.text().notNull(),
 				email: t.text().notNull().unique(),
 				bio: t.text().nullable(),
@@ -33,14 +31,12 @@ describe("better-db integration", () => {
 		// Create a simple test plugin inline (avoid circular dependency with plugins package)
 		const testPlugin = createDbPlugin("test", ({ table }) => ({
 			Comment: table("comment", (t) => ({
-				id: t.id(),
 				content: t.text().notNull(),
 			})),
 		}));
 
 		const blogDb = defineDb(({ table }) => ({
 			Post: table("post", (t) => ({
-				id: t.id(),
 				title: t.text().notNull(),
 			})),
 		})).use(testPlugin);
@@ -53,7 +49,6 @@ describe("better-db integration", () => {
 	it("should create correct field attributes", () => {
 		const blogDb = defineDb(({ table }) => ({
 			Post: table("post", (t) => ({
-				id: t.id(),
 				title: t.text().notNull(),
 				email: t.text().unique(),
 			})),
@@ -72,7 +67,6 @@ describe("better-db integration", () => {
 	it("should convert to Better Auth schema format", () => {
 		const blogDb = defineDb(({ table }) => ({
 			Post: table("post", (t) => ({
-				id: t.id(),
 				title: t.text().notNull(),
 			})),
 		}));

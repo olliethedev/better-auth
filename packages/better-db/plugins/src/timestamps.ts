@@ -15,8 +15,6 @@ import { createDbPlugin } from "@better-db/core";
  */
 export const timestampsPlugin = createDbPlugin("timestamps", ({ table }) => ({
 	Timestamp: table("timestamp", (t) => ({
-		id: t.id(), // Automatically becomes primary key
-
 		// What entity this timestamp is for
 		entityType: t.text().notNull(), // e.g., "post", "user", etc.
 		entityId: t.text().notNull(), // ID of the entity
