@@ -8,6 +8,7 @@ const DEFAULT_AUTH_TABLES = [
 	"account",
 	"verification",
 	"rateLimit",
+	"ratelimit", // Lowercase variant
 ];
 
 const DEFAULT_AUTH_MODELS = [
@@ -92,10 +93,13 @@ export function filterDrizzleAuthTables(code: string): string {
 		const tableMatch = line.match(/export\s+const\s+(\w+)\s*=/);
 		if (tableMatch) {
 			const tableName = tableMatch[1];
+			// Check both exact match and lowercase match
 			if (
-				DEFAULT_AUTH_MODELS.some(
-					(model) => tableName?.toLowerCase() === model.toLowerCase(),
-				)
+				tableName &&
+				(DEFAULT_AUTH_TABLES.includes(tableName.toLowerCase()) ||
+					DEFAULT_AUTH_MODELS.some(
+						(model) => tableName.toLowerCase() === model.toLowerCase(),
+					))
 			) {
 				inAuthTable = true;
 				parenCount = 0;

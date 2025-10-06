@@ -1,11 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { defineDb, createDbPlugin } from "@better-db/core";
 
-describe("better-db CLI - Schema Definition", () => {
+/**
+ * Tests for better-db schema definition and conversion
+ * (ORM generation is tested in generate-all-orms.test.ts)
+ */
+describe("better-db schema conversion", () => {
 	it("should create better-db schema correctly", () => {
 		const db = defineDb(({ table }) => ({
 			Post: table("post", (t) => ({
-				id: t.id(),
 				title: t.text().notNull(),
 				content: t.text().notNull(),
 			})),
@@ -14,13 +17,13 @@ describe("better-db CLI - Schema Definition", () => {
 		const schema = db.getSchema();
 		expect(schema).toBeDefined();
 		expect(schema.Post).toBeDefined();
-		expect(schema.Post!!.fields.id).toBeDefined();
+		// Note: id is not in fields - Better Auth handles it automatically
+		expect(schema.Post!!.fields.title).toBeDefined();
 	});
 
 	it("should convert better-db schema to Better Auth format", () => {
 		const db = defineDb(({ table }) => ({
 			Post: table("post", (t) => ({
-				id: t.id(),
 				title: t.text().notNull(),
 				published: t.boolean().defaultValue(false),
 			})),
@@ -35,24 +38,33 @@ describe("better-db CLI - Schema Definition", () => {
 	});
 
 	it("should handle plugins in schema conversion", () => {
-		const db = defineDb(({ table }) => ({
-			Post: table("post", (t) => ({
-				id: t.id(),
-				title: t.text().notNull(),
+		const plugin = createDbPlugin("test", ({ table }) => ({
+			Comment: table("comment", (t) => ({
+				content: t.text().notNull(),
 			})),
 		}));
+
+		const db = defineDb(({ table }) => ({
+			Post: table("post", (t) => ({
+				title: t.text().notNull(),
+			})),
+		})).use(plugin);
 
 		const schema = db.getSchema();
 		expect(schema).toBeDefined();
 
+		// Verify both tables exist
+		expect(Object.keys(schema)).toContain("Post");
+		expect(Object.keys(schema)).toContain("Comment");
+
 		// Verify model names are correct
 		expect(schema.Post!!.modelName).toBe("post");
+		expect(schema.Comment!!.modelName).toBe("comment");
 	});
 
 	it("should preserve field attributes during conversion", () => {
 		const db = defineDb(({ table }) => ({
 			User: table("user", (t) => ({
-				id: t.id(),
 				email: t.text().notNull().unique(),
 				name: t.text().nullable(),
 				age: t.number().defaultValue(0),
@@ -71,7 +83,6 @@ describe("better-db CLI - Schema Definition", () => {
 	it("should handle references correctly", () => {
 		const db = defineDb(({ table }) => ({
 			Post: table("post", (t) => ({
-				id: t.id(),
 				authorId: t.text().notNull().references("author"),
 				categoryId: t.text().nullable().references("category", "id"),
 			})),
@@ -93,22 +104,18 @@ describe("better-db CLI - Schema Definition", () => {
 	it("should merge multiple plugins correctly", () => {
 		const plugin1 = createDbPlugin("plugin1", ({ table }) => ({
 			Table1: table("table1", (t) => ({
-				id: t.id(),
 				name: t.text().notNull(),
 			})),
 		}));
 
 		const plugin2 = createDbPlugin("plugin2", ({ table }) => ({
 			Table2: table("table2", (t) => ({
-				id: t.id(),
 				value: t.number().defaultValue(0),
 			})),
 		}));
 
 		const db = defineDb(({ table }) => ({
-			Main: table("main", (t) => ({
-				id: t.id(),
-			})),
+			Main: table("main", (t) => ({})),
 		}))
 			.use(plugin1)
 			.use(plugin2);
@@ -123,7 +130,6 @@ describe("better-db CLI - Schema Definition", () => {
 	it("should handle all field types correctly", () => {
 		const db = defineDb(({ table }) => ({
 			AllTypes: table("all_types", (t) => ({
-				id: t.id(),
 				textField: t.text(),
 				stringField: t.string(),
 				numberField: t.number(),

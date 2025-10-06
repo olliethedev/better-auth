@@ -1,7 +1,7 @@
 import { Command } from "commander";
 import { betterAuth } from "better-auth";
-import { memoryAdapter } from "better-auth/adapters/memory";
-import { getAdapter } from "better-auth/db";
+import { prismaAdapter } from "better-auth/adapters/prisma";
+import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { createJiti } from "jiti";
 import chalk from "chalk";
 import yoctoSpinner from "yocto-spinner";
@@ -9,6 +9,7 @@ import prompts from "prompts";
 import fs from "fs/promises";
 import path from "path";
 import { filterAuthTables } from "../utils/filter-auth-tables";
+import type { BetterAuthOptions } from "better-auth";
 
 // Import generators from local copy (bundled with our package)
 import { generatePrismaSchema } from "../generators/prisma";
@@ -68,18 +69,71 @@ async function generateAction(options: GenerateOptions) {
 	// 4. Convert to Better Auth format
 	const betterAuthSchema = dbSchema.toBetterAuthSchema();
 
-	// 5. Create betterAuth instance with schema
-	const auth = betterAuth({
-		database: memoryAdapter({}),
+	// 5. Create appropriate adapter based on ORM
+	// Each generator needs the correct adapter type and provider
+	let adapter: any;
+
+	if (options.orm === "prisma") {
+		// Prisma generator needs adapter.id = "prisma" and provider
+		adapter = prismaAdapter(
+			{},
+			{ provider: "postgresql" },
+		)({} as BetterAuthOptions);
+	} else if (options.orm === "drizzle") {
+		// Drizzle generator needs adapter.id = "drizzle" and provider
+		adapter = drizzleAdapter(
+			{},
+			{ provider: "pg", schema: {} },
+		)({} as BetterAuthOptions);
+	} else if (options.orm === "kysely") {
+		// Kysely needs real database connection for introspection
+		const databaseUrl = process.env.DATABASE_URL;
+		if (!databaseUrl) {
+			console.error(
+				chalk.red("❌ Kysely generation requires DATABASE_URL env var"),
+			);
+			console.log(
+				chalk.yellow(
+					"\nExample:\n  DATABASE_URL=sqlite:./dev.db npx better-db generate ...",
+				),
+			);
+			process.exit(1);
+		}
+
+		// Create betterAuth instance with real DB for introspection
+		const auth = betterAuth({
+			database: {
+				provider: databaseUrl.startsWith("postgres")
+					? "pg"
+					: databaseUrl.startsWith("mysql")
+						? "mysql"
+						: "sqlite",
+				url: databaseUrl,
+				type: "kysely",
+			} as any,
+			plugins: [
+				{
+					id: "better-db-schema",
+					schema: betterAuthSchema,
+				},
+			],
+		});
+
+		// For Kysely, we need the adapter from getAdapter (has DB connection)
+		const { getAdapter } = await import("better-auth/db");
+		adapter = await getAdapter(auth.options);
+	}
+
+	// 6. Create options with schema
+	const generatorOptions = {
+		database: adapter,
 		plugins: [
 			{
 				id: "better-db-schema",
 				schema: betterAuthSchema,
 			},
 		],
-	});
-
-	const adapter = await getAdapter(auth.options);
+	};
 
 	// 6. Generate based on explicit ORM parameter
 	const spinner = yoctoSpinner({
@@ -91,19 +145,19 @@ async function generateAction(options: GenerateOptions) {
 		if (options.orm === "prisma") {
 			result = await generatePrismaSchema({
 				adapter,
-				options: auth.options,
+				options: generatorOptions,
 				file: outputPath,
 			});
 		} else if (options.orm === "drizzle") {
 			result = await generateDrizzleSchema({
 				adapter,
-				options: auth.options,
+				options: generatorOptions,
 				file: outputPath,
 			});
 		} else if (options.orm === "kysely") {
 			result = await generateMigrations({
 				adapter,
-				options: auth.options,
+				options: generatorOptions,
 				file: outputPath,
 			});
 		}
@@ -116,13 +170,13 @@ async function generateAction(options: GenerateOptions) {
 		process.exit(1);
 	}
 
-	// 7. Handle output
+	// 8. Handle output
 	if (!result?.code) {
 		console.log(chalk.gray("Schema is up to date."));
 		return;
 	}
 
-	// 8. Filter auth tables if requested
+	// 9. Filter auth tables if requested
 	if (options.filterAuth && result.code) {
 		result.code = filterAuthTables(result.code, options.orm);
 		console.log(
@@ -132,7 +186,7 @@ async function generateAction(options: GenerateOptions) {
 		);
 	}
 
-	// 9. Prompt if overwriting (unless --yes)
+	// 10. Prompt if overwriting (unless --yes)
 	if (result.overwrite && !options.yes) {
 		const response = await prompts({
 			type: "confirm",
@@ -147,11 +201,11 @@ async function generateAction(options: GenerateOptions) {
 		}
 	}
 
-	// 10. Write output
+	// 11. Write output
 	await fs.writeFile(outputPath, result.code, "utf8");
 	console.log(chalk.green(`✅ Generated ${options.orm} schema: ${outputPath}`));
 
-	// 11. Show next steps
+	// 12. Show next steps
 	console.log(chalk.gray("\nNext steps:"));
 	if (options.orm === "prisma") {
 		console.log(chalk.gray("  1. Review the generated schema"));

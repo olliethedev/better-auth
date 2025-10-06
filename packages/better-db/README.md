@@ -379,8 +379,8 @@ npx better-db generate \
   --orm=drizzle \
   --output=src/db/schema.ts
 
-# Kysely
-npx better-db generate \
+# Kysely (requires DATABASE_URL for introspection)
+DATABASE_URL=sqlite:./dev.db npx better-db generate \
   --config=db.ts \
   --orm=kysely \
   --output=migrations/schema.sql
