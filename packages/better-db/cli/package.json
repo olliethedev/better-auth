@@ -1,6 +1,6 @@
 {
   "name": "@better-db/cli",
-  "version": "1.3.31",
+  "version": "1.3.32",
   "description": "CLI for better-db schema generation and migration",
   "type": "module",
   "license": "MIT",

@@ -22,4 +22,5 @@ export type {
 	DbPlugin,
 	TableBuilder,
 	FieldBuilder,
+	Adapter,
 } from "./types";
