@@ -625,10 +625,11 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 		// Query posts by multiple authors using "in" operator
 		const posts = await adapter.findMany({
 			model: "Post",
-			where: [{ field: "authorId", value: [user1.id, user2.id], operator: "in" }],
+			where: [
+				{ field: "authorId", value: [user1.id, user2.id], operator: "in" },
+			],
 		});
 
 		expect(posts.length).toBe(3);
 	});
 });
-

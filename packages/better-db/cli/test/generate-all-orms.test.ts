@@ -207,7 +207,9 @@ describe("Generate Drizzle schemas for all databases", () => {
 		});
 
 		const filteredCode = filterAuthTables(result.code || "", "drizzle");
-		expect(filteredCode).toMatchFileSnapshot("./__snapshots__/drizzle-mysql.ts");
+		expect(filteredCode).toMatchFileSnapshot(
+			"./__snapshots__/drizzle-mysql.ts",
+		);
 	});
 
 	it("should generate Drizzle schema for SQLite", async () => {

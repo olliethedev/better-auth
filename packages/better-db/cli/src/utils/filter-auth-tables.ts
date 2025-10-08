@@ -75,10 +75,11 @@ export function filterPrismaAuthTables(code: string): string {
 	}
 
 	// Clean up excessive blank lines (more than 2 consecutive)
-	const cleaned = filteredLines.join("\n")
+	const cleaned = filteredLines
+		.join("\n")
 		.replace(/\n{3,}/g, "\n\n") // Replace 3+ newlines with 2
 		.trim();
-	
+
 	return cleaned;
 }
 
@@ -129,10 +130,11 @@ export function filterDrizzleAuthTables(code: string): string {
 	}
 
 	// Clean up excessive blank lines (more than 2 consecutive)
-	const cleaned = filteredLines.join("\n")
+	const cleaned = filteredLines
+		.join("\n")
 		.replace(/\n{3,}/g, "\n\n") // Replace 3+ newlines with 2
 		.trim();
-	
+
 	return cleaned;
 }
 

@@ -45,7 +45,7 @@ class DefineDbResultImpl implements DefineDbResult {
 		for (const [tableName, table] of Object.entries(this.schema)) {
 			// Remove id field for generator compatibility - generators add it automatically
 			const { id, ...fieldsWithoutId } = table.fields;
-			
+
 			betterAuthSchema[tableName] = {
 				fields: fieldsWithoutId,
 				modelName: table.modelName,

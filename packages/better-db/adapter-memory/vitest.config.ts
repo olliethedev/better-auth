@@ -5,4 +5,3 @@ export default defineConfig({
 		// Similar to better-auth config
 	},
 });
-

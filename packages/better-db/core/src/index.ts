@@ -4,7 +4,7 @@ export type {
 	DBFieldAttributeConfig,
 	DBFieldType,
 	DBPrimitive,
-	BetterAuthDBSchema
+	BetterAuthDBSchema,
 } from "@better-auth/core/db";
 
 // Re-export useful utilities from Better Auth
@@ -23,5 +23,5 @@ export type {
 	TableBuilder,
 	FieldBuilder,
 	Adapter,
-	DefineDbResult
+	DefineDbResult,
 } from "./types";
