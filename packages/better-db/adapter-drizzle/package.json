@@ -1,6 +1,6 @@
 {
   "name": "@better-db/adapter-drizzle",
-  "version": "1.3.31",
+  "version": "1.3.32",
   "description": "Drizzle adapter for better-db",
   "type": "module",
   "license": "MIT",

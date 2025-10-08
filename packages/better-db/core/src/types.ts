@@ -1,5 +1,8 @@
 import type { DBFieldAttribute } from "@better-auth/core/db";
 
+// Adapter type for convenience
+export type { Adapter } from "better-auth/types";
+
 // Type for a single table definition
 export interface DbTable {
 	modelName: string;
