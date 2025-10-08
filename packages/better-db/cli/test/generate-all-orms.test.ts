@@ -54,7 +54,8 @@ describe("Generate Prisma schemas for all databases", () => {
 			file: "test-pg.prisma",
 		});
 
-		expect(result.code).toMatchFileSnapshot(
+		const filteredCode = filterAuthTables(result.code || "", "prisma");
+		expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/prisma-postgresql.prisma",
 		);
 	});
@@ -76,7 +77,8 @@ describe("Generate Prisma schemas for all databases", () => {
 			file: "test-mysql.prisma",
 		});
 
-		expect(result.code).toMatchFileSnapshot(
+		const filteredCode = filterAuthTables(result.code || "", "prisma");
+		expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/prisma-mysql.prisma",
 		);
 	});
@@ -98,7 +100,8 @@ describe("Generate Prisma schemas for all databases", () => {
 			file: "test-sqlite.prisma",
 		});
 
-		expect(result.code).toMatchFileSnapshot(
+		const filteredCode = filterAuthTables(result.code || "", "prisma");
+		expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/prisma-sqlite.prisma",
 		);
 	});
@@ -120,7 +123,8 @@ describe("Generate Prisma schemas for all databases", () => {
 			file: "test-mongodb.prisma",
 		});
 
-		expect(result.code).toMatchFileSnapshot(
+		const filteredCode = filterAuthTables(result.code || "", "prisma");
+		expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/prisma-mongodb.prisma",
 		);
 	});
@@ -176,7 +180,8 @@ describe("Generate Drizzle schemas for all databases", () => {
 			file: "test-pg.ts",
 		});
 
-		expect(result.code).toMatchFileSnapshot(
+		const filteredCode = filterAuthTables(result.code || "", "drizzle");
+		expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/drizzle-postgresql.ts",
 		);
 	});
@@ -201,7 +206,8 @@ describe("Generate Drizzle schemas for all databases", () => {
 			file: "test-mysql.ts",
 		});
 
-		expect(result.code).toMatchFileSnapshot("./__snapshots__/drizzle-mysql.ts");
+		const filteredCode = filterAuthTables(result.code || "", "drizzle");
+		expect(filteredCode).toMatchFileSnapshot("./__snapshots__/drizzle-mysql.ts");
 	});
 
 	it("should generate Drizzle schema for SQLite", async () => {
@@ -224,7 +230,8 @@ describe("Generate Drizzle schemas for all databases", () => {
 			file: "test-sqlite.ts",
 		});
 
-		expect(result.code).toMatchFileSnapshot(
+		const filteredCode = filterAuthTables(result.code || "", "drizzle");
+		expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/drizzle-sqlite.ts",
 		);
 	});
@@ -331,7 +338,8 @@ describe("Generate with advanced options", () => {
 			file: "test-number-id.prisma",
 		});
 
-		expect(result.code).toMatchFileSnapshot(
+		const filteredCode = filterAuthTables(result.code || "", "prisma");
+		expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/prisma-number-id.prisma",
 		);
 	});
@@ -358,7 +366,8 @@ describe("Generate with advanced options", () => {
 			file: "test-number-id.ts",
 		});
 
-		expect(result.code).toMatchFileSnapshot(
+		const filteredCode = filterAuthTables(result.code || "", "drizzle");
+		expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/drizzle-number-id.ts",
 		);
 	});

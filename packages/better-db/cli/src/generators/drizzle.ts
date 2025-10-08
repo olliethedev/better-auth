@@ -211,6 +211,8 @@ export const generateDrizzleSchema: SchemaGenerator = async ({
 	}
 	const formattedCode = await prettier.format(code, {
 		parser: "typescript",
+		useTabs: true,
+		tabWidth: 2,
 	});
 	return {
 		code: formattedCode,

@@ -1,4 +1,5 @@
 import type { DBFieldAttribute } from "@better-auth/core/db";
+export type { DefineDbResult } from "./define-db";
 
 // Adapter type for convenience
 export type { Adapter } from "better-auth/types";
