@@ -57,7 +57,7 @@ describe("Generate Prisma schemas for all databases", () => {
 		});
 
 		const filteredCode = filterAuthTables(result.code || "", "prisma");
-		expect(filteredCode).toMatchFileSnapshot(
+		await expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/prisma-postgresql.prisma",
 		);
 	});
@@ -80,7 +80,7 @@ describe("Generate Prisma schemas for all databases", () => {
 		});
 
 		const filteredCode = filterAuthTables(result.code || "", "prisma");
-		expect(filteredCode).toMatchFileSnapshot(
+		await expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/prisma-mysql.prisma",
 		);
 	});
@@ -103,7 +103,7 @@ describe("Generate Prisma schemas for all databases", () => {
 		});
 
 		const filteredCode = filterAuthTables(result.code || "", "prisma");
-		expect(filteredCode).toMatchFileSnapshot(
+		await expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/prisma-sqlite.prisma",
 		);
 	});
@@ -126,7 +126,7 @@ describe("Generate Prisma schemas for all databases", () => {
 		});
 
 		const filteredCode = filterAuthTables(result.code || "", "prisma");
-		expect(filteredCode).toMatchFileSnapshot(
+		await expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/prisma-mongodb.prisma",
 		);
 	});
@@ -183,7 +183,7 @@ describe("Generate Drizzle schemas for all databases", () => {
 		});
 
 		const filteredCode = filterAuthTables(result.code || "", "drizzle");
-		expect(filteredCode).toMatchFileSnapshot(
+		await expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/drizzle-postgresql.ts",
 		);
 	});
@@ -209,7 +209,7 @@ describe("Generate Drizzle schemas for all databases", () => {
 		});
 
 		const filteredCode = filterAuthTables(result.code || "", "drizzle");
-		expect(filteredCode).toMatchFileSnapshot(
+		await expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/drizzle-mysql.ts",
 		);
 	});
@@ -235,7 +235,7 @@ describe("Generate Drizzle schemas for all databases", () => {
 		});
 
 		const filteredCode = filterAuthTables(result.code || "", "drizzle");
-		expect(filteredCode).toMatchFileSnapshot(
+		await expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/drizzle-sqlite.ts",
 		);
 	});
@@ -284,7 +284,7 @@ describe("Generate Kysely migrations with real database", () => {
 			file: "test-kysely.sql",
 		});
 
-		expect(result.code).toMatchFileSnapshot(
+		await expect(result.code).toMatchFileSnapshot(
 			"./__snapshots__/kysely-sqlite.sql",
 		);
 
@@ -312,7 +312,7 @@ describe("Generate Kysely migrations with real database", () => {
 			const filteredCode = filterAuthTables(result.code, "kysely");
 
 			// Save filtered snapshot
-			expect(filteredCode).toMatchFileSnapshot(
+			await expect(filteredCode).toMatchFileSnapshot(
 				"./__snapshots__/kysely-filtered.sql",
 			);
 		}
@@ -343,7 +343,7 @@ describe("Generate with advanced options", () => {
 		});
 
 		const filteredCode = filterAuthTables(result.code || "", "prisma");
-		expect(filteredCode).toMatchFileSnapshot(
+		await expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/prisma-number-id.prisma",
 		);
 	});
@@ -371,7 +371,7 @@ describe("Generate with advanced options", () => {
 		});
 
 		const filteredCode = filterAuthTables(result.code || "", "drizzle");
-		expect(filteredCode).toMatchFileSnapshot(
+		await expect(filteredCode).toMatchFileSnapshot(
 			"./__snapshots__/drizzle-number-id.ts",
 		);
 	});
