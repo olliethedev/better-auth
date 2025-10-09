@@ -1,2 +1,3 @@
-// Re-export everything from Better Auth's Drizzle adapter
-export * from "better-auth/adapters/drizzle";
+// Drizzle adapter for @better-db
+// Vendored from better-auth for independent publishing
+export * from "./drizzle-adapter";
