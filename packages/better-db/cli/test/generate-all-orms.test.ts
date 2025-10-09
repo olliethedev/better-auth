@@ -5,10 +5,12 @@ import { defineDb, createDbPlugin } from "@better-db/core";
 import Database from "better-sqlite3";
 import type { BetterAuthOptions } from "better-auth";
 
-// Import generators from our local copy
-import { generatePrismaSchema } from "../src/generators/prisma";
-import { generateDrizzleSchema } from "../src/generators/drizzle";
-import { generateMigrations } from "../src/generators/kysely";
+// Import generators from @better-auth/cli package
+import {
+	generatePrismaSchema,
+	generateDrizzleSchema,
+	generateMigrations,
+} from "@better-auth/cli/generators";
 import { filterAuthTables } from "../src/utils/filter-auth-tables";
 
 // Test plugin

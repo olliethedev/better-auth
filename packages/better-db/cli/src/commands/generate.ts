@@ -11,10 +11,12 @@ import path from "path";
 import { filterAuthTables } from "../utils/filter-auth-tables";
 import type { BetterAuthOptions } from "better-auth";
 
-// Import generators from local copy (bundled with our package)
-import { generatePrismaSchema } from "../generators/prisma";
-import { generateDrizzleSchema } from "../generators/drizzle";
-import { generateMigrations } from "../generators/kysely";
+// Import generators from @better-auth/cli package
+import {
+	generatePrismaSchema,
+	generateDrizzleSchema,
+	generateMigrations,
+} from "@better-auth/cli/generators";
 
 interface GenerateOptions {
 	config: string; // REQUIRED
