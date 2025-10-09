@@ -129,6 +129,252 @@ export default defineDb(({ table }) => ({
 		}
 	}, 10000);
 
+	it("should generate Kysely migrations with SQLite database connection", async () => {
+		await fs.mkdir(testDir, { recursive: true });
+		await fs.writeFile(
+			testSchema,
+			`
+import { defineDb } from "@better-db/core";
+
+export default defineDb(({ table }) => ({
+  Task: table("task", (t) => ({
+    title: t.text().notNull(),
+    completed: t.boolean().defaultValue(false),
+  })),
+}));
+`,
+			"utf8",
+		);
+
+		const outputPath = path.join(testDir, "migrations.sql");
+		const dbPath = path.join(testDir, "test.db");
+
+		// Run with SQLite DATABASE_URL
+		const { stdout } = await execAsync(
+			`node ./dist/index.mjs generate --config=${testSchema} --orm=kysely --output=${outputPath} --yes`,
+			{
+				cwd: process.cwd(),
+				env: { ...process.env, DATABASE_URL: `sqlite:${dbPath}` },
+			},
+		);
+
+		const fileExists = await fs
+			.access(outputPath)
+			.then(() => true)
+			.catch(() => false);
+		expect(fileExists).toBe(true);
+
+		const content = await fs.readFile(outputPath, "utf8");
+		expect(content.toLowerCase()).toContain("create table");
+		expect(content).toContain("task");
+		expect(content).toContain("title");
+		expect(content).toContain("completed");
+	}, 15000);
+
+	it("should generate Kysely migrations with PostgreSQL (postgres:// prefix)", async () => {
+		await fs.mkdir(testDir, { recursive: true });
+		await fs.writeFile(
+			testSchema,
+			`
+import { defineDb } from "@better-db/core";
+
+export default defineDb(({ table }) => ({
+  Product: table("product", (t) => ({
+    name: t.text().notNull(),
+    price: t.number().notNull(),
+  })),
+}));
+`,
+			"utf8",
+		);
+
+		const outputPath = path.join(testDir, "migrations.sql");
+
+		// Test with postgres:// prefix (both formats should work)
+		// Using postgres-kysely container on port 5433
+		const { stdout } = await execAsync(
+			`node ./dist/index.mjs generate --config=${testSchema} --orm=kysely --output=${outputPath} --yes`,
+			{
+				cwd: process.cwd(),
+				env: {
+					...process.env,
+					DATABASE_URL: "postgres://user:password@localhost:5433/better_auth",
+				},
+			},
+		);
+
+		const fileExists = await fs
+			.access(outputPath)
+			.then(() => true)
+			.catch(() => false);
+		expect(fileExists).toBe(true);
+
+		const content = await fs.readFile(outputPath, "utf8");
+		expect(content.toLowerCase()).toContain("create table");
+		expect(content).toContain("product");
+		expect(content).toContain("name");
+		expect(content).toContain("price");
+	}, 20000);
+
+	it("should generate Kysely migrations with PostgreSQL (postgresql:// prefix)", async () => {
+		await fs.mkdir(testDir, { recursive: true });
+		await fs.writeFile(
+			testSchema,
+			`
+import { defineDb } from "@better-db/core";
+
+export default defineDb(({ table }) => ({
+  Order: table("orders", (t) => ({
+    total: t.number().notNull(),
+    status: t.text().notNull(),
+  })),
+}));
+`,
+			"utf8",
+		);
+
+		const outputPath = path.join(testDir, "migrations-pg.sql");
+
+		// Test with postgresql:// prefix (the issue we fixed)
+		// Using postgres-kysely container on port 5433
+		const { stdout } = await execAsync(
+			`node ./dist/index.mjs generate --config=${testSchema} --orm=kysely --output=${outputPath} --yes`,
+			{
+				cwd: process.cwd(),
+				env: {
+					...process.env,
+					DATABASE_URL: "postgresql://user:password@localhost:5433/better_auth",
+				},
+			},
+		);
+
+		const fileExists = await fs
+			.access(outputPath)
+			.then(() => true)
+			.catch(() => false);
+		expect(fileExists).toBe(true);
+
+		const content = await fs.readFile(outputPath, "utf8");
+		expect(content.toLowerCase()).toContain("create table");
+		expect(content).toContain("orders");
+		expect(content).toContain("total");
+		expect(content).toContain("status");
+	}, 20000);
+
+	it("should generate Kysely migrations with MySQL", async () => {
+		await fs.mkdir(testDir, { recursive: true });
+		await fs.writeFile(
+			testSchema,
+			`
+import { defineDb } from "@better-db/core";
+
+export default defineDb(({ table }) => ({
+  Customer: table("customer", (t) => ({
+    email: t.text().notNull(),
+    name: t.text().notNull(),
+  })),
+}));
+`,
+			"utf8",
+		);
+
+		const outputPath = path.join(testDir, "migrations-mysql.sql");
+
+		// Test MySQL connection using mysql-kysely container on port 3307
+		const { stdout } = await execAsync(
+			`node ./dist/index.mjs generate --config=${testSchema} --orm=kysely --output=${outputPath} --yes`,
+			{
+				cwd: process.cwd(),
+				env: {
+					...process.env,
+					DATABASE_URL: "mysql://user:password@localhost:3307/better_auth",
+				},
+			},
+		);
+
+		const fileExists = await fs
+			.access(outputPath)
+			.then(() => true)
+			.catch(() => false);
+		expect(fileExists).toBe(true);
+
+		const content = await fs.readFile(outputPath, "utf8");
+		expect(content.toLowerCase()).toContain("create table");
+		expect(content).toContain("customer");
+		expect(content).toContain("email");
+		expect(content).toContain("name");
+	}, 20000);
+
+	it("should run migrate command with PostgreSQL", async () => {
+		await fs.mkdir(testDir, { recursive: true });
+		await fs.writeFile(
+			testSchema,
+			`
+import { defineDb } from "@better-db/core";
+
+export default defineDb(({ table }) => ({
+  Invoice: table("invoice", (t) => ({
+    amount: t.number().notNull(),
+    paid: t.boolean().defaultValue(false),
+  })),
+}));
+`,
+			"utf8",
+		);
+
+		// Test migrate command with postgres-kysely container
+		const { stdout } = await execAsync(
+			`node ./dist/index.mjs migrate --config=${testSchema} --yes`,
+			{
+				cwd: process.cwd(),
+				env: {
+					...process.env,
+					DATABASE_URL: "postgres://user:password@localhost:5433/better_auth",
+				},
+			},
+		);
+
+		// Verify output mentions migration success or up to date
+		expect(
+			stdout.includes("Migrations completed") || stdout.includes("up to date"),
+		).toBe(true);
+	}, 30000);
+
+	it("should run migrate command with MySQL", async () => {
+		await fs.mkdir(testDir, { recursive: true });
+		await fs.writeFile(
+			testSchema,
+			`
+import { defineDb } from "@better-db/core";
+
+export default defineDb(({ table }) => ({
+  Receipt: table("receipt", (t) => ({
+    total: t.number().notNull(),
+    date: t.timestamp().notNull(),
+  })),
+}));
+`,
+			"utf8",
+		);
+
+		// Test migrate command with mysql-kysely container
+		const { stdout } = await execAsync(
+			`node ./dist/index.mjs migrate --config=${testSchema} --yes`,
+			{
+				cwd: process.cwd(),
+				env: {
+					...process.env,
+					DATABASE_URL: "mysql://user:password@localhost:3307/better_auth",
+				},
+			},
+		);
+
+		// Verify output mentions migration success or up to date
+		expect(
+			stdout.includes("Migrations completed") || stdout.includes("up to date"),
+		).toBe(true);
+	}, 30000);
+
 	it("should filter auth tables with --filter-auth flag", async () => {
 		await fs.mkdir(testDir, { recursive: true });
 		await fs.writeFile(

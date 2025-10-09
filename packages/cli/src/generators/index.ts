@@ -3,6 +3,12 @@ import { generateDrizzleSchema } from "./drizzle";
 import { generatePrismaSchema } from "./prisma";
 import { generateMigrations } from "./kysely";
 
+// Re-export all generators and types for use by other packages
+export { generateDrizzleSchema } from "./drizzle";
+export { generatePrismaSchema } from "./prisma";
+export { generateMigrations } from "./kysely";
+export type { SchemaGenerator } from "./types";
+
 export const adapters = {
 	prisma: generatePrismaSchema,
 	drizzle: generateDrizzleSchema,

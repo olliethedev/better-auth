@@ -13,7 +13,13 @@ export function table(name: string, builder: TableBuilder): DbTable {
 	}
 
 	// Convert field builders to actual field attributes
-	const fields: Record<string, any> = {};
+	// Add id field for internal schema (getSchema() will include it)
+	const fields: Record<string, any> = {
+		id: {
+			type: "string",
+			required: true,
+		},
+	};
 
 	for (const [fieldName, fieldBuilder] of Object.entries(fieldBuilders)) {
 		fields[fieldName] = fieldBuilder._build();

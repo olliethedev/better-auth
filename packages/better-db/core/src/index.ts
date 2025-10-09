@@ -23,4 +23,5 @@ export type {
 	TableBuilder,
 	FieldBuilder,
 	Adapter,
+	DefineDbResult,
 } from "./types";
