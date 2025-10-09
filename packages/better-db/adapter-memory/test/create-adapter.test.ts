@@ -17,9 +17,7 @@ describe("createMemoryAdapter helper", () => {
 			})),
 		}));
 
-		const adapterFactory = createMemoryAdapter(db, {
-			secret: "test-secret",
-		});
+		const adapterFactory = createMemoryAdapter(db);
 
 		expect(adapterFactory).toBeDefined();
 		expect(typeof adapterFactory).toBe("function");
@@ -36,9 +34,7 @@ describe("createMemoryAdapter helper", () => {
 			})),
 		}));
 
-		const adapterFactory = createMemoryAdapter(db, {
-			secret: "test-secret",
-		});
+		const adapterFactory = createMemoryAdapter(db);
 
 		const adapter = adapterFactory({});
 
@@ -79,9 +75,7 @@ describe("createMemoryAdapter helper", () => {
 			})),
 		}));
 
-		const adapterFactory = createMemoryAdapter(db, {
-			secret: "test-secret",
-		});
+		const adapterFactory = createMemoryAdapter(db);
 
 		const adapter = adapterFactory({});
 
@@ -133,9 +127,7 @@ describe("createMemoryAdapter helper", () => {
 			})),
 		}));
 
-		const adapterFactory = createMemoryAdapter(db, {
-			secret: "test-secret",
-		});
+		const adapterFactory = createMemoryAdapter(db);
 
 		const adapter = adapterFactory({});
 

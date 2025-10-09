@@ -85,7 +85,6 @@ describe("Memory Adapter Integration with Better DB", () => {
 		// Create adapter with options including schema
 		// Schema needs to be in a plugin, not directly in options
 		const options = {
-			secret: "test-secret",
 			plugins: [
 				{
 					id: "better-db-schema",
@@ -110,7 +109,6 @@ describe("Memory Adapter Integration with Better DB", () => {
 		}
 
 		const options = {
-			secret: "test-secret",
 			plugins: [
 				{
 					id: "better-db-schema",
@@ -143,7 +141,6 @@ describe("Memory Adapter Integration with Better DB", () => {
 		}
 
 		const options = {
-			secret: "test-secret",
 			plugins: [
 				{
 					id: "better-db-schema",
@@ -210,7 +207,6 @@ describe("Memory Adapter Integration with Better DB", () => {
 		}
 
 		const options = {
-			secret: "test-secret",
 			plugins: [
 				{
 					id: "better-db-schema",
@@ -317,7 +313,6 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 		}
 
 		const options = {
-			secret: "test-secret",
 			plugins: [
 				{
 					id: "better-db-schema",

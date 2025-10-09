@@ -23,10 +23,7 @@ import type { BetterAuthOptions } from "better-auth/types";
  *   })),
  * }));
  *
- * const adapter = createMemoryAdapter(db, {
- *   secret: "your-secret",
- *   // ... other Better Auth options
- * });
+ * const adapter = createMemoryAdapter(db);
  * ```
  */
 export function createMemoryAdapter(
