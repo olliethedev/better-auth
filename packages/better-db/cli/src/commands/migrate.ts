@@ -68,16 +68,74 @@ async function migrateAction(options: MigrateOptions) {
 
 	// 5. Create betterAuth instance
 	// Note: Using Kysely adapter for migrations
+
+	// Track pool for cleanup (MySQL/PostgreSQL)
+	let connectionPool: any = null;
+
+	// Create Kysely database instance based on URL
+	let database: any;
+
+	try {
+		if (
+			databaseUrl.startsWith("postgres://") ||
+			databaseUrl.startsWith("postgresql://")
+		) {
+			// PostgreSQL - create Kysely instance with PostgresDialect
+			const { Kysely, PostgresDialect } = await import("kysely");
+			const { Pool } = await import("pg");
+			const pool = new Pool({ connectionString: databaseUrl });
+			connectionPool = pool; // Store for cleanup
+			const kysely = new Kysely({
+				dialect: new PostgresDialect({
+					pool: pool,
+				}),
+			});
+			database = { db: kysely, type: "postgres" };
+		} else if (databaseUrl.startsWith("mysql://")) {
+			// MySQL - create Kysely instance with MysqlDialect
+			const { Kysely, MysqlDialect } = await import("kysely");
+			const { createPool } = await import("mysql2/promise");
+			const pool = createPool(databaseUrl);
+			connectionPool = pool; // Store for cleanup
+			const kysely = new Kysely({
+				dialect: new MysqlDialect(pool),
+			});
+			database = { db: kysely, type: "mysql" };
+		} else {
+			// SQLite - pass raw database, Kysely will wrap it
+			const Database = (await import("better-sqlite3")).default;
+			// Extract file path from URL (e.g., "sqlite:./dev.db" -> "./dev.db")
+			const dbPath = databaseUrl.replace(/^sqlite:/, "");
+			database = new Database(dbPath);
+		}
+	} catch (error: any) {
+		if (error.code === "ERR_MODULE_NOT_FOUND") {
+			console.error(chalk.red("❌ Missing database driver dependency"));
+			if (
+				databaseUrl.startsWith("postgres://") ||
+				databaseUrl.startsWith("postgresql://")
+			) {
+				console.log(
+					chalk.yellow("\nInstall PostgreSQL driver:\n  npm install pg"),
+				);
+			} else if (databaseUrl.startsWith("mysql://")) {
+				console.log(
+					chalk.yellow("\nInstall MySQL driver:\n  npm install mysql2"),
+				);
+			} else {
+				console.log(
+					chalk.yellow(
+						"\nInstall SQLite driver:\n  npm install better-sqlite3",
+					),
+				);
+			}
+			process.exit(1);
+		}
+		throw error;
+	}
+
 	const auth = betterAuth({
-		database: {
-			provider: databaseUrl.startsWith("postgres")
-				? "pg"
-				: databaseUrl.startsWith("mysql")
-					? "mysql"
-					: "sqlite",
-			url: databaseUrl,
-			type: "kysely",
-		} as any, // Type override for Kysely config
+		database,
 		plugins: [
 			{
 				id: "better-db-schema",
@@ -106,12 +164,20 @@ async function migrateAction(options: MigrateOptions) {
 		console.log("• Database connection failed");
 		console.log("• Not using Kysely adapter");
 		console.log("• Invalid DATABASE_URL");
+		// Cleanup before exiting
+		if (connectionPool) {
+			await connectionPool.end();
+		}
 		process.exit(1);
 	}
 
 	// 7. Show pending migrations
 	if (toBeCreated.length === 0 && toBeAdded.length === 0) {
 		console.log(chalk.gray("✓ Database is up to date."));
+		// Cleanup before returning
+		if (connectionPool) {
+			await connectionPool.end();
+		}
 		return;
 	}
 
@@ -138,6 +204,10 @@ async function migrateAction(options: MigrateOptions) {
 
 		if (!response.continue) {
 			console.log(chalk.yellow("Cancelled."));
+			// Cleanup before returning
+			if (connectionPool) {
+				await connectionPool.end();
+			}
 			return;
 		}
 	}
@@ -152,7 +222,16 @@ async function migrateAction(options: MigrateOptions) {
 	} catch (error: any) {
 		runSpinner.stop();
 		console.error(chalk.red("❌ Migration failed:"), error.message);
+		// Cleanup before exiting
+		if (connectionPool) {
+			await connectionPool.end();
+		}
 		process.exit(1);
+	}
+
+	// 10. Cleanup: Close database connection pool
+	if (connectionPool) {
+		await connectionPool.end();
 	}
 }
 

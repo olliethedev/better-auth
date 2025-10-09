@@ -74,6 +74,8 @@ async function generateAction(options: GenerateOptions) {
 	// 5. Create appropriate adapter based on ORM
 	// Each generator needs the correct adapter type and provider
 	let adapter: any;
+	let auth: any; // For Kysely, we need the betterAuth instance
+	let connectionPool: any = null; // Track pool for cleanup (MySQL/PostgreSQL)
 
 	if (options.orm === "prisma") {
 		// Prisma generator needs adapter.id = "prisma" and provider
@@ -102,17 +104,71 @@ async function generateAction(options: GenerateOptions) {
 			process.exit(1);
 		}
 
+		// Create Kysely database instance based on URL
+		let database: any;
+
+		try {
+			if (
+				databaseUrl.startsWith("postgres://") ||
+				databaseUrl.startsWith("postgresql://")
+			) {
+				// PostgreSQL - create Kysely instance with PostgresDialect
+				const { Kysely, PostgresDialect } = await import("kysely");
+				const { Pool } = await import("pg");
+				const pool = new Pool({ connectionString: databaseUrl });
+				connectionPool = pool; // Store for cleanup
+				const kysely = new Kysely({
+					dialect: new PostgresDialect({
+						pool: pool,
+					}),
+				});
+				database = { db: kysely, type: "postgres" };
+			} else if (databaseUrl.startsWith("mysql://")) {
+				// MySQL - create Kysely instance with MysqlDialect
+				const { Kysely, MysqlDialect } = await import("kysely");
+				const { createPool } = await import("mysql2/promise");
+				const pool = createPool(databaseUrl);
+				connectionPool = pool; // Store for cleanup
+				const kysely = new Kysely({
+					dialect: new MysqlDialect(pool),
+				});
+				database = { db: kysely, type: "mysql" };
+			} else {
+				// SQLite - pass raw database, Kysely will wrap it
+				const Database = (await import("better-sqlite3")).default;
+				// Extract file path from URL (e.g., "sqlite:./dev.db" -> "./dev.db")
+				const dbPath = databaseUrl.replace(/^sqlite:/, "");
+				database = new Database(dbPath);
+			}
+		} catch (error: any) {
+			if (error.code === "ERR_MODULE_NOT_FOUND") {
+				console.error(chalk.red("❌ Missing database driver dependency"));
+				if (
+					databaseUrl.startsWith("postgres://") ||
+					databaseUrl.startsWith("postgresql://")
+				) {
+					console.log(
+						chalk.yellow("\nInstall PostgreSQL driver:\n  npm install pg"),
+					);
+				} else if (databaseUrl.startsWith("mysql://")) {
+					console.log(
+						chalk.yellow("\nInstall MySQL driver:\n  npm install mysql2"),
+					);
+				} else {
+					console.log(
+						chalk.yellow(
+							"\nInstall SQLite driver:\n  npm install better-sqlite3",
+						),
+					);
+				}
+				process.exit(1);
+			}
+			throw error;
+		}
+
 		// Create betterAuth instance with real DB for introspection
-		const auth = betterAuth({
-			database: {
-				provider: databaseUrl.startsWith("postgres")
-					? "pg"
-					: databaseUrl.startsWith("mysql")
-						? "mysql"
-						: "sqlite",
-				url: databaseUrl,
-				type: "kysely",
-			} as any,
+		auth = betterAuth({
+			database,
 			plugins: [
 				{
 					id: "better-db-schema",
@@ -121,9 +177,9 @@ async function generateAction(options: GenerateOptions) {
 			],
 		});
 
-		// For Kysely, we need the adapter from getAdapter (has DB connection)
-		const { getAdapter } = await import("better-auth/db");
-		adapter = await getAdapter(auth.options);
+		// For Kysely, we can use auth.options directly
+		// No need to get the adapter separately
+		adapter = null; // Will use auth.options directly for Kysely
 	}
 
 	// 6. Create options with schema
@@ -157,9 +213,10 @@ async function generateAction(options: GenerateOptions) {
 				file: outputPath,
 			});
 		} else if (options.orm === "kysely") {
+			// For Kysely, pass auth.options directly (not the adapter)
 			result = await generateMigrations({
-				adapter,
-				options: generatorOptions,
+				adapter: null as any,
+				options: auth.options,
 				file: outputPath,
 			});
 		}
@@ -169,12 +226,20 @@ async function generateAction(options: GenerateOptions) {
 		spinner.stop();
 		console.error(chalk.red("❌ Generation failed:"), error.message);
 		console.error(error.stack);
+		// Cleanup before exiting
+		if (connectionPool) {
+			await connectionPool.end();
+		}
 		process.exit(1);
 	}
 
 	// 8. Handle output
 	if (!result?.code) {
 		console.log(chalk.gray("Schema is up to date."));
+		// Cleanup before returning
+		if (connectionPool) {
+			await connectionPool.end();
+		}
 		return;
 	}
 
@@ -199,6 +264,10 @@ async function generateAction(options: GenerateOptions) {
 
 		if (!response.continue) {
 			console.log(chalk.yellow("Cancelled."));
+			// Cleanup before returning
+			if (connectionPool) {
+				await connectionPool.end();
+			}
 			return;
 		}
 	}
@@ -220,6 +289,11 @@ async function generateAction(options: GenerateOptions) {
 		console.log(
 			chalk.gray("  2. Apply migrations using your migration runner"),
 		);
+	}
+
+	// 13. Cleanup: Close database connection pool
+	if (connectionPool) {
+		await connectionPool.end();
 	}
 }
 
