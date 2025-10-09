@@ -1,4 +1,3 @@
-import { Kysely, MysqlDialect, PostgresDialect } from "kysely";
 import { betterAuth } from "better-auth";
 import { logger } from "./logger";
 
@@ -22,6 +21,8 @@ export async function createDatabaseConnection(
 			databaseUrl.startsWith("postgresql://")
 		) {
 			// PostgreSQL - create Kysely instance with PostgresDialect
+			// Use dynamic imports to avoid requiring kysely when not using it
+			const { Kysely, PostgresDialect } = await import("kysely");
 			const { Pool } = await import("pg");
 			const pool = new Pool({ connectionString: databaseUrl });
 			connectionPool = pool;
@@ -40,6 +41,8 @@ export async function createDatabaseConnection(
 			};
 		} else if (databaseUrl.startsWith("mysql://")) {
 			// MySQL - create Kysely instance with MysqlDialect
+			// Use dynamic imports to avoid requiring kysely when not using it
+			const { Kysely, MysqlDialect } = await import("kysely");
 			const { createPool } = await import("mysql2/promise");
 			const pool = createPool(databaseUrl);
 			connectionPool = pool;

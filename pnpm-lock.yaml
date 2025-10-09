@@ -966,6 +966,10 @@ importers:
         version: 3.5.19(typescript@5.9.2)
 
   packages/better-db/adapter-drizzle:
+    dependencies:
+      '@better-db/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       better-auth:
         specifier: workspace:*
@@ -981,6 +985,10 @@ importers:
         version: 3.6.1(sass@1.90.0)(typescript@5.9.2)(vue@3.5.19(typescript@5.9.2))
 
   packages/better-db/adapter-kysely:
+    dependencies:
+      '@better-db/core':
+        specifier: workspace:*
+        version: link:../core
     devDependencies:
       better-auth:
         specifier: workspace:*
@@ -1016,6 +1024,9 @@ importers:
 
   packages/better-db/adapter-mongodb:
     dependencies:
+      '@better-db/core':
+        specifier: workspace:*
+        version: link:../core
       mongodb:
         specifier: ^6.0.0
         version: 6.18.0
@@ -1032,6 +1043,9 @@ importers:
 
   packages/better-db/adapter-prisma:
     dependencies:
+      '@better-db/core':
+        specifier: workspace:*
+        version: link:../core
       '@prisma/client':
         specifier: ^5.0.0
         version: 5.22.0(prisma@5.22.0)

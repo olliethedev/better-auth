@@ -3,15 +3,13 @@ import { getMigrations } from "better-auth/db";
 import yoctoSpinner from "yocto-spinner";
 import prompts from "prompts";
 import path from "path";
+import fs from "fs/promises";
 import { logger } from "../utils/logger";
-import {
-	createDatabaseConnection,
-	createBetterAuthInstance,
-} from "../utils/database";
 import { loadBetterDbSchema } from "../utils/schema-loader";
 
 interface MigrateOptions {
 	config: string; // REQUIRED
+	output?: string; // Optional: output file path for generated SQL
 	databaseUrl?: string; // Optional: for Kysely connection
 	cwd?: string;
 	yes?: boolean;
@@ -25,6 +23,7 @@ async function migrateAction(options: MigrateOptions) {
 
 	const cwd = options.cwd || process.cwd();
 	const schemaPath = path.resolve(cwd, options.config);
+	const outputPath = options.output ? path.resolve(cwd, options.output) : null;
 
 	let cleanup: (() => Promise<void>) | null = null;
 
@@ -44,7 +43,11 @@ async function migrateAction(options: MigrateOptions) {
 			process.exit(1);
 		}
 
-		// 4. Create database connection
+		// 4. Create database connection (dynamic import to avoid kysely when not needed)
+		const { createDatabaseConnection, createBetterAuthInstance } = await import(
+			"../utils/database"
+		);
+
 		const { database, cleanup: dbCleanup } =
 			await createDatabaseConnection(databaseUrl);
 		cleanup = dbCleanup;
@@ -58,12 +61,14 @@ async function migrateAction(options: MigrateOptions) {
 		let toBeAdded: any[];
 		let toBeCreated: any[];
 		let runMigrations: () => Promise<void>;
+		let compileMigrations: () => Promise<string>;
 
 		try {
 			const migrations = await getMigrations(auth.options);
 			toBeAdded = migrations.toBeAdded;
 			toBeCreated = migrations.toBeCreated;
 			runMigrations = migrations.runMigrations;
+			compileMigrations = migrations.compileMigrations;
 			spinner.stop();
 		} catch (error: any) {
 			spinner.stop();
@@ -91,7 +96,49 @@ async function migrateAction(options: MigrateOptions) {
 			toBeAdded.forEach((c) => logger.info(`    - ${c.table}.${c.column}`));
 		}
 
-		// 8. Confirm
+		// 8. If output is specified, generate SQL file instead of running
+		if (outputPath) {
+			// Check if file exists and prompt if not --yes
+			const fileExists = await fs
+				.access(outputPath)
+				.then(() => true)
+				.catch(() => false);
+
+			if (fileExists && !options.yes) {
+				const response = await prompts({
+					type: "confirm",
+					name: "continue",
+					message: `File ${outputPath} already exists. Overwrite?`,
+					initial: false,
+				});
+
+				if (!response.continue) {
+					logger.warn("Cancelled.");
+					return;
+				}
+			}
+
+			const sqlSpinner = yoctoSpinner({ text: "Generating SQL..." });
+			sqlSpinner.start();
+			try {
+				const sql = await compileMigrations();
+				await fs.writeFile(outputPath, sql.trim(), "utf8");
+				sqlSpinner.stop();
+				logger.success(`✅ Migration SQL saved to: ${outputPath}`);
+				logger.info("\nNext steps:");
+				logger.info("  1. Review the generated SQL");
+				logger.info(
+					"  2. Apply it using your database client or migration tool",
+				);
+			} catch (error: any) {
+				sqlSpinner.stop();
+				logger.error("Failed to generate SQL:", error.message);
+				process.exit(1);
+			}
+			return;
+		}
+
+		// 9. Confirm before running migrations directly
 		if (!options.yes) {
 			const response = await prompts({
 				type: "confirm",
@@ -106,7 +153,7 @@ async function migrateAction(options: MigrateOptions) {
 			}
 		}
 
-		// 9. Run migrations
+		// 10. Run migrations
 		const runSpinner = yoctoSpinner({ text: "Running migrations..." });
 		runSpinner.start();
 		try {
@@ -130,6 +177,10 @@ async function migrateAction(options: MigrateOptions) {
 export const migrateCommand = new Command("migrate")
 	.description("Run database migrations (Kysely only)")
 	.requiredOption("--config <path>", "Path to better-db schema file")
+	.option(
+		"--output <path>",
+		"Output path for migration SQL (if not set, runs migrations directly)",
+	)
 	.option(
 		"--database-url <url>",
 		"Database connection URL (or use DATABASE_URL env var)",

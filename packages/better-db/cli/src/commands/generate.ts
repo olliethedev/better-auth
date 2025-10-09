@@ -1,6 +1,4 @@
 import { Command } from "commander";
-import { prismaAdapter } from "better-auth/adapters/prisma";
-import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import yoctoSpinner from "yocto-spinner";
 import prompts from "prompts";
 import fs from "fs/promises";
@@ -8,10 +6,6 @@ import path from "path";
 import { filterAuthTables } from "../utils/filter-auth-tables";
 import type { BetterAuthOptions } from "better-auth";
 import { logger } from "../utils/logger";
-import {
-	createDatabaseConnection,
-	createBetterAuthInstance,
-} from "../utils/database";
 import { loadBetterDbSchema } from "../utils/schema-loader";
 
 // Import generators from local generators package
@@ -28,6 +22,7 @@ interface GenerateOptions {
 	cwd?: string;
 	yes?: boolean;
 	filterAuth?: boolean; // Filter out Better Auth default tables
+	databaseUrl?: string; // Optional: for Kysely connection
 }
 
 async function generateAction(options: GenerateOptions) {
@@ -52,26 +47,38 @@ async function generateAction(options: GenerateOptions) {
 
 		if (options.orm === "prisma") {
 			// Prisma generator needs adapter.id = "prisma" and provider
+			// Use dynamic import to avoid loading prisma adapter when not needed
+			const { prismaAdapter } = await import("better-auth/adapters/prisma");
 			adapter = prismaAdapter(
 				{},
 				{ provider: "postgresql" },
 			)({} as BetterAuthOptions);
 		} else if (options.orm === "drizzle") {
 			// Drizzle generator needs adapter.id = "drizzle" and provider
+			// Use dynamic import to avoid loading drizzle adapter when not needed
+			const { drizzleAdapter } = await import("better-auth/adapters/drizzle");
 			adapter = drizzleAdapter(
 				{},
 				{ provider: "pg", schema: {} },
 			)({} as BetterAuthOptions);
 		} else if (options.orm === "kysely") {
 			// Kysely needs real database connection for introspection
-			const databaseUrl = process.env.DATABASE_URL;
+			const databaseUrl = options.databaseUrl || process.env.DATABASE_URL;
 			if (!databaseUrl) {
-				logger.error("Kysely generation requires DATABASE_URL env var");
+				logger.error("Kysely generation requires database connection");
+				logger.info("Set DATABASE_URL env var or use --database-url flag");
 				logger.info(
-					"\nExample:\n  DATABASE_URL=sqlite:./dev.db npx better-db generate ...",
+					"\nExamples:\n  DATABASE_URL=sqlite:./dev.db npx better-db generate ...",
+				);
+				logger.info(
+					"  npx better-db generate --database-url=sqlite:./dev.db ...",
 				);
 				process.exit(1);
 			}
+
+			// Use dynamic import to avoid loading kysely dependencies when not needed
+			const { createDatabaseConnection, createBetterAuthInstance } =
+				await import("../utils/database");
 
 			// Create database connection
 			const { database, cleanup: dbCleanup } =
@@ -144,6 +151,18 @@ async function generateAction(options: GenerateOptions) {
 			logger.info(
 				"🧹 Filtered out Better Auth default tables (User, Session, etc.)",
 			);
+
+			// Check if filtering removed all content
+			if (
+				!result.code ||
+				result.code.trim() === "" ||
+				result.code.trim() === ";"
+			) {
+				logger.info(
+					"✓ No custom tables need to be created. Schema is up to date.",
+				);
+				return;
+			}
 		}
 
 		// 8. Prompt if overwriting (unless --yes)
@@ -196,5 +215,9 @@ export const generateCommand = new Command("generate")
 	.option(
 		"--filter-auth",
 		"Filter out Better Auth default tables (User, Session, etc.)",
+	)
+	.option(
+		"--database-url <url>",
+		"Database connection URL (for Kysely, or set DATABASE_URL env var)",
 	)
 	.action(generateAction);
