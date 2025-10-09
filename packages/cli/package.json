@@ -32,8 +32,7 @@
     "better-auth"
   ],
   "exports": {
-    ".": "./dist/index.mjs",
-    "./generators": "./dist/generators/index.mjs"
+    ".": "./dist/index.mjs"
   },
   "bin": "./dist/index.mjs",
   "devDependencies": {

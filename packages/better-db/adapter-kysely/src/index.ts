@@ -1,2 +1,4 @@
-// Re-export everything from Better Auth's Kysely adapter
-export * from "better-auth/adapters/kysely";
+// Kysely adapter for @better-db
+// Vendored from better-auth for independent publishing
+export * from "./types";
+export * from "./kysely-adapter";

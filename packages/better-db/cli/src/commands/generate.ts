@@ -14,12 +14,12 @@ import {
 } from "../utils/database";
 import { loadBetterDbSchema } from "../utils/schema-loader";
 
-// Import generators from @better-auth/cli package
+// Import generators from local generators package
 import {
 	generatePrismaSchema,
 	generateDrizzleSchema,
 	generateMigrations,
-} from "@better-auth/cli/generators";
+} from "../generators";
 
 interface GenerateOptions {
 	config: string; // REQUIRED
