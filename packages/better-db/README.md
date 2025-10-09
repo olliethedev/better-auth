@@ -2,7 +2,7 @@
 
 **A thin, upstream-syncable fork of Better Auth's database layer—database utilities without the auth domain.**
 
-Better DB provides all the power of Better Auth's adapter pattern and CLI-driven schema generation, but focused purely on database management without authentication concerns. It's designed to stay closely aligned with Better Auth for easy upstream syncing while giving you a clean, focused API for database operations.
+Better DB provides all the power of Better Auth's adapter pattern and CLI-driven schema generation, but focused purely on database management without authentication concerns. 
 
 ## Why Better DB?
 
