@@ -2,7 +2,7 @@
  * Filters out Better Auth's default auth tables from generated schema code
  */
 
-const DEFAULT_AUTH_TABLES = [
+export const DEFAULT_AUTH_TABLES = [
 	"user",
 	"session",
 	"account",
@@ -11,7 +11,7 @@ const DEFAULT_AUTH_TABLES = [
 	"ratelimit", // Lowercase variant
 ];
 
-const DEFAULT_AUTH_MODELS = [
+export const DEFAULT_AUTH_MODELS = [
 	"User",
 	"Session",
 	"Account",
@@ -148,8 +148,8 @@ export function filterKyselyAuthTables(code: string): string {
 
 	for (const line of lines) {
 		// Check for CREATE TABLE statements for auth tables
-		// Match: CREATE TABLE "user", CREATE TABLE user, CREATE TABLE 'user'
-		const createMatch = line.match(/CREATE\s+TABLE\s+(?:["']?(\w+)["']?)/i);
+		// Match: CREATE TABLE "user", CREATE TABLE user, CREATE TABLE 'user', CREATE TABLE `user`
+		const createMatch = line.match(/CREATE\s+TABLE\s+(?:["`']?(\w+)["`']?)/i);
 		if (createMatch) {
 			const tableName = createMatch[1];
 			if (tableName && DEFAULT_AUTH_TABLES.includes(tableName.toLowerCase())) {
@@ -170,7 +170,7 @@ export function filterKyselyAuthTables(code: string): string {
 		}
 
 		// Skip ALTER TABLE statements for auth tables
-		const alterMatch = line.match(/ALTER\s+TABLE\s+["']?(\w+)["']?/i);
+		const alterMatch = line.match(/ALTER\s+TABLE\s+["`']?(\w+)["`']?/i);
 		if (alterMatch) {
 			const tableName = alterMatch[1];
 			if (tableName && DEFAULT_AUTH_TABLES.includes(tableName.toLowerCase())) {
@@ -179,7 +179,7 @@ export function filterKyselyAuthTables(code: string): string {
 		}
 
 		// Skip foreign key references to auth tables
-		const refMatch = line.match(/REFERENCES\s+["']?(\w+)["']?/i);
+		const refMatch = line.match(/REFERENCES\s+["`']?(\w+)["`']?/i);
 		if (refMatch) {
 			const refTable = refMatch[1];
 			if (refTable && DEFAULT_AUTH_TABLES.includes(refTable.toLowerCase())) {

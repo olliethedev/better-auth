@@ -116,12 +116,18 @@ npx better-db generate --config=db.ts --orm=prisma --output=schema.prisma --filt
 
 ```bash
 # Kysely only - for Prisma/Drizzle use their native tools
-# Using DATABASE_URL environment variable
+# Using DATABASE_URL environment variable or --database-url param
 DATABASE_URL=sqlite:./dev.db npx better-db migrate --config=db.ts
 
 # Or using --database-url flag
 npx better-db migrate --config=db.ts --database-url=sqlite:./dev.db
 npx better-db migrate --config=db.ts --database-url=postgres://user:pass@localhost:5432/db
+
+# Generate SQL to file instead of running migrations
+npx better-db migrate --config=db.ts --output=migrations.sql --database-url=sqlite:./dev.db
+
+# Filter auth tables (User, Session, Account, Verification)
+npx better-db migrate --config=db.ts --output=migrations.sql --filter-auth --database-url=sqlite:./dev.db
 ```
 
 ## Field Types
