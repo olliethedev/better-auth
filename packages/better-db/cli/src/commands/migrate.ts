@@ -6,6 +6,10 @@ import path from "path";
 import fs from "fs/promises";
 import { logger } from "../utils/logger";
 import { loadBetterDbSchema } from "../utils/schema-loader";
+import {
+	filterAuthTables,
+	DEFAULT_AUTH_TABLES,
+} from "../utils/filter-auth-tables";
 
 interface MigrateOptions {
 	config: string; // REQUIRED
@@ -13,6 +17,7 @@ interface MigrateOptions {
 	databaseUrl?: string; // Optional: for Kysely connection
 	cwd?: string;
 	yes?: boolean;
+	filterAuth?: boolean; // Filter out Better Auth default tables
 }
 
 async function migrateAction(options: MigrateOptions) {
@@ -80,7 +85,20 @@ async function migrateAction(options: MigrateOptions) {
 			process.exit(1);
 		}
 
-		// 7. Show pending migrations
+		// 7. Filter auth tables if requested
+		if (options.filterAuth) {
+			toBeCreated = toBeCreated.filter(
+				(t) => !DEFAULT_AUTH_TABLES.includes(t.table.toLowerCase()),
+			);
+			toBeAdded = toBeAdded.filter(
+				(c) => !DEFAULT_AUTH_TABLES.includes(c.table.toLowerCase()),
+			);
+			logger.info(
+				"🧹 Filtered out Better Auth default tables (user, session, etc.)",
+			);
+		}
+
+		// 8. Show pending migrations
 		if (toBeCreated.length === 0 && toBeAdded.length === 0) {
 			logger.info("✓ Database is up to date.");
 			return;
@@ -96,7 +114,7 @@ async function migrateAction(options: MigrateOptions) {
 			toBeAdded.forEach((c) => logger.info(`    - ${c.table}.${c.column}`));
 		}
 
-		// 8. If output is specified, generate SQL file instead of running
+		// 9. If output is specified, generate SQL file instead of running
 		if (outputPath) {
 			// Check if file exists and prompt if not --yes
 			const fileExists = await fs
@@ -121,7 +139,22 @@ async function migrateAction(options: MigrateOptions) {
 			const sqlSpinner = yoctoSpinner({ text: "Generating SQL..." });
 			sqlSpinner.start();
 			try {
-				const sql = await compileMigrations();
+				let sql = await compileMigrations();
+
+				// Filter auth tables from SQL if requested
+				if (options.filterAuth) {
+					sql = filterAuthTables(sql, "kysely");
+
+					// Check if filtering removed all content
+					if (!sql || sql.trim() === "" || sql.trim() === ";") {
+						sqlSpinner.stop();
+						logger.info(
+							"✓ No custom tables need to be migrated. Database is up to date.",
+						);
+						return;
+					}
+				}
+
 				await fs.writeFile(outputPath, sql.trim(), "utf8");
 				sqlSpinner.stop();
 				logger.success(`✅ Migration SQL saved to: ${outputPath}`);
@@ -138,7 +171,7 @@ async function migrateAction(options: MigrateOptions) {
 			return;
 		}
 
-		// 9. Confirm before running migrations directly
+		// 10. Confirm before running migrations directly
 		if (!options.yes) {
 			const response = await prompts({
 				type: "confirm",
@@ -153,7 +186,7 @@ async function migrateAction(options: MigrateOptions) {
 			}
 		}
 
-		// 10. Run migrations
+		// 11. Run migrations
 		const runSpinner = yoctoSpinner({ text: "Running migrations..." });
 		runSpinner.start();
 		try {
@@ -166,7 +199,7 @@ async function migrateAction(options: MigrateOptions) {
 			process.exit(1);
 		}
 	} finally {
-		// 10. Cleanup: Close database connection
+		// 12. Cleanup: Close database connection
 		if (cleanup) {
 			await cleanup();
 		}
@@ -187,4 +220,8 @@ export const migrateCommand = new Command("migrate")
 	)
 	.option("--cwd <dir>", "Working directory", process.cwd())
 	.option("-y, --yes", "Skip confirmation prompts")
+	.option(
+		"--filter-auth",
+		"Filter out Better Auth default tables (user, session, etc.)",
+	)
 	.action(migrateAction);

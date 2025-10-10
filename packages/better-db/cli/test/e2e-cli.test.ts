@@ -570,4 +570,302 @@ export default defineDb(({ table }) => ({
 			.catch(() => false);
 		expect(fileExists).toBe(false);
 	}, 20000);
+
+	it("should filter auth tables from migrate command output with --filter-auth", async () => {
+		await fs.mkdir(testDir, { recursive: true });
+		await fs.writeFile(
+			testSchema,
+			`
+import { defineDb } from "@better-db/core";
+
+export default defineDb(({ table }) => ({
+  Product: table("product", (t) => ({
+    name: t.text().notNull(),
+    price: t.number().notNull(),
+    stock: t.number().defaultValue(0),
+  })),
+  Category: table("category", (t) => ({
+    title: t.text().notNull(),
+    description: t.text(),
+  })),
+}));
+`,
+			"utf8",
+		);
+
+		const outputPath = path.join(testDir, "filtered.sql");
+
+		// Clean database first
+		const { Pool } = await import("pg");
+		const pool = new Pool({
+			connectionString: "postgres://user:password@localhost:5433/better_auth",
+		});
+		await pool.query(
+			'DROP TABLE IF EXISTS product, category, verification, account, session, "user", "rateLimit" CASCADE',
+		);
+		await pool.end();
+
+		// Run migrate with --filter-auth and --output
+		const { stdout } = await execAsync(
+			`node ./dist/index.mjs migrate --config=${testSchema} --output=${outputPath} --filter-auth --yes`,
+			{
+				cwd: process.cwd(),
+				env: {
+					...process.env,
+					DATABASE_URL: "postgres://user:password@localhost:5433/better_auth",
+				},
+			},
+		);
+
+		// Should generate SQL file
+		const fileExists = await fs
+			.access(outputPath)
+			.then(() => true)
+			.catch(() => false);
+		expect(fileExists).toBe(true);
+
+		const content = await fs.readFile(outputPath, "utf8");
+
+		// Should contain custom tables
+		expect(content.toLowerCase()).toContain("create table");
+		expect(content).toContain("product");
+		expect(content).toContain("category");
+
+		// Should NOT contain auth tables
+		expect(content.toLowerCase()).not.toContain('create table "user"');
+		expect(content.toLowerCase()).not.toContain("create table user");
+		expect(content.toLowerCase()).not.toContain('create table "session"');
+		expect(content.toLowerCase()).not.toContain("create table session");
+		expect(content.toLowerCase()).not.toContain('create table "account"');
+		expect(content.toLowerCase()).not.toContain("create table account");
+		expect(content.toLowerCase()).not.toContain('create table "verification"');
+		expect(content.toLowerCase()).not.toContain("create table verification");
+
+		// Compare against fixture
+		const expectedPath = path.join(
+			__dirname,
+			"fixtures/expected-migrate-filtered.sql",
+		);
+		const expected = await fs.readFile(expectedPath, "utf8");
+		expect(content.trim()).toBe(expected.trim());
+	}, 30000);
+
+	it("should not create file when migrate --filter-auth removes all content", async () => {
+		await fs.mkdir(testDir, { recursive: true });
+		await fs.writeFile(
+			testSchema,
+			`
+import { defineDb } from "@better-db/core";
+
+export default defineDb(({ table }) => ({
+  MigrateEmpty: table("migrate_empty", (t) => ({
+    data: t.text().notNull(),
+  })),
+}));
+`,
+			"utf8",
+		);
+
+		const outputPath = path.join(testDir, "migrate-empty.sql");
+		const initialPath = path.join(testDir, "migrate-initial.sql");
+
+		// Clean database and set up
+		const { Pool } = await import("pg");
+		let pool = new Pool({
+			connectionString: "postgres://user:password@localhost:5433/better_auth",
+		});
+		await pool.query(
+			'DROP TABLE IF EXISTS migrate_empty, verification, account, session, "user", "rateLimit" CASCADE',
+		);
+		await pool.end();
+
+		// Create all tables first (including custom table)
+		await execAsync(
+			`node ./dist/index.mjs migrate --config=${testSchema} --output=${initialPath} --yes`,
+			{
+				cwd: process.cwd(),
+				env: {
+					...process.env,
+					DATABASE_URL: "postgres://user:password@localhost:5433/better_auth",
+				},
+			},
+		);
+
+		// Apply the migration
+		pool = new Pool({
+			connectionString: "postgres://user:password@localhost:5433/better_auth",
+		});
+		const initialSql = await fs.readFile(initialPath, "utf8");
+		for (const statement of initialSql.split(";").filter((s) => s.trim())) {
+			await pool.query(statement);
+		}
+		await pool.end();
+
+		// Now run migrate with --filter-auth (should be no changes since custom table exists)
+		const { stdout } = await execAsync(
+			`node ./dist/index.mjs migrate --config=${testSchema} --output=${outputPath} --filter-auth --yes`,
+			{
+				cwd: process.cwd(),
+				env: {
+					...process.env,
+					DATABASE_URL: "postgres://user:password@localhost:5433/better_auth",
+				},
+			},
+		);
+
+		// Should indicate database is up to date
+		expect(stdout).toContain("Database is up to date");
+
+		// File should not exist
+		const fileExists = await fs
+			.access(outputPath)
+			.then(() => true)
+			.catch(() => false);
+		expect(fileExists).toBe(false);
+	}, 30000);
+
+	it("should show filtered pending migrations in migrate command", async () => {
+		await fs.mkdir(testDir, { recursive: true });
+		await fs.writeFile(
+			testSchema,
+			`
+import { defineDb } from "@better-db/core";
+
+export default defineDb(({ table }) => ({
+  Warehouse: table("warehouse", (t) => ({
+    location: t.text().notNull(),
+    capacity: t.number().notNull(),
+  })),
+  Inventory: table("inventory", (t) => ({
+    itemId: t.text().notNull(),
+    quantity: t.number().notNull(),
+  })),
+}));
+`,
+			"utf8",
+		);
+
+		// Clean database
+		const { Pool } = await import("pg");
+		const pool = new Pool({
+			connectionString: "postgres://user:password@localhost:5433/better_auth",
+		});
+		await pool.query(
+			'DROP TABLE IF EXISTS warehouse, inventory, verification, account, session, "user", "rateLimit" CASCADE',
+		);
+		await pool.end();
+
+		const outputPath = path.join(testDir, "pending.sql");
+
+		// Run migrate with --filter-auth to see pending migrations
+		const { stdout } = await execAsync(
+			`node ./dist/index.mjs migrate --config=${testSchema} --output=${outputPath} --filter-auth --yes`,
+			{
+				cwd: process.cwd(),
+				env: {
+					...process.env,
+					DATABASE_URL: "postgres://user:password@localhost:5433/better_auth",
+				},
+			},
+		);
+
+		// Should show pending migrations message
+		expect(stdout).toContain("Pending migrations");
+		expect(stdout).toContain("Filtered out Better Auth default tables");
+
+		// Should mention custom tables but NOT auth tables in the table list
+		expect(stdout).toContain("warehouse");
+		expect(stdout).toContain("inventory");
+		// Check that user/session tables are not in the "Tables to create" list
+		// (the filter message itself will contain "user" and "session" as examples)
+		const tablesSection = stdout.substring(stdout.indexOf("Tables to create"));
+		expect(tablesSection).not.toContain("- user");
+		expect(tablesSection).not.toContain("- session");
+
+		// Verify output file
+		const content = await fs.readFile(outputPath, "utf8");
+		expect(content).toContain("warehouse");
+		expect(content).toContain("inventory");
+		expect(content).not.toContain('create table "user"');
+		expect(content).not.toContain('create table "session"');
+
+		// Compare against fixture
+		const expectedPath = path.join(
+			__dirname,
+			"fixtures/expected-migrate-pending.sql",
+		);
+		const expected = await fs.readFile(expectedPath, "utf8");
+		expect(content.trim()).toBe(expected.trim());
+	}, 30000);
+
+	it("should filter auth tables from migrate command in MySQL", async () => {
+		await fs.mkdir(testDir, { recursive: true });
+		await fs.writeFile(
+			testSchema,
+			`
+import { defineDb } from "@better-db/core";
+
+export default defineDb(({ table }) => ({
+  Store: table("store", (t) => ({
+    name: t.text().notNull(),
+    address: t.text().notNull(),
+  })),
+}));
+`,
+			"utf8",
+		);
+
+		const outputPath = path.join(testDir, "mysql.sql");
+
+		// Clean MySQL database
+		const mysql = await import("mysql2/promise");
+		const connection = await mysql.createConnection({
+			host: "localhost",
+			port: 3307,
+			user: "user",
+			password: "password",
+			database: "better_auth",
+		});
+		await connection.query(
+			"DROP TABLE IF EXISTS store, verification, account, session, user, rateLimit",
+		);
+		await connection.end();
+
+		// Run migrate with --filter-auth for MySQL
+		const { stdout } = await execAsync(
+			`node ./dist/index.mjs migrate --config=${testSchema} --output=${outputPath} --filter-auth --yes`,
+			{
+				cwd: process.cwd(),
+				env: {
+					...process.env,
+					DATABASE_URL: "mysql://user:password@localhost:3307/better_auth",
+				},
+			},
+		);
+
+		// Should generate SQL
+		const fileExists = await fs
+			.access(outputPath)
+			.then(() => true)
+			.catch(() => false);
+		expect(fileExists).toBe(true);
+
+		const content = await fs.readFile(outputPath, "utf8");
+
+		// Should contain custom table
+		expect(content.toLowerCase()).toContain("create table");
+		expect(content).toContain("store");
+
+		// Should NOT contain auth tables
+		expect(content.toLowerCase()).not.toContain("create table user");
+		expect(content.toLowerCase()).not.toContain("create table session");
+
+		// Compare against fixture
+		const expectedPath = path.join(
+			__dirname,
+			"fixtures/expected-migrate-mysql.sql",
+		);
+		const expected = await fs.readFile(expectedPath, "utf8");
+		expect(content.trim()).toBe(expected.trim());
+	}, 30000);
 });
