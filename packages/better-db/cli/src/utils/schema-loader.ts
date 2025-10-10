@@ -4,7 +4,7 @@ import { logger } from "./logger";
 
 /**
  * Loads and validates a better-db schema file
- * Returns the schema object with toBetterAuthSchema method
+ * Returns the schema object with getSchema method
  */
 export async function loadBetterDbSchema(schemaPath: string) {
 	// 1. Validate schema file exists
@@ -34,7 +34,7 @@ export async function loadBetterDbSchema(schemaPath: string) {
 	}
 
 	// 3. Validate it's a better-db schema
-	if (!dbSchema?.toBetterAuthSchema) {
+	if (!dbSchema?.getSchema) {
 		logger.error("Invalid schema: must export defineDb() result");
 		process.exit(1);
 	}

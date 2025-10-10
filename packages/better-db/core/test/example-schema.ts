@@ -1,24 +1,56 @@
 import { defineDb } from "../src/index";
-import { commentsPlugin } from "../../plugins/src/comments";
+import { todoPlugin } from "../../plugins/src/todo";
 
-// Test the defineDb DSL
-export const blogDb = defineDb(({ table }) => ({
-	Post: table("post", (t) => ({
-		title: t.text().notNull(),
-		body: t.text().notNull(),
-		authorId: t.text().notNull(),
-		published: t.boolean().defaultValue(false),
-		createdAt: t.timestamp().defaultNow(),
-		updatedAt: t.timestamp().defaultNow(),
-	})),
+// Test the defineDb with new object syntax
+export const blogDb = defineDb({
+	post: {
+		modelName: "post",
+		fields: {
+			title: {
+				type: "string",
+				required: true,
+			},
+			body: {
+				type: "string",
+				required: true,
+			},
+			authorId: {
+				type: "string",
+				required: true,
+			},
+			published: {
+				type: "boolean",
+				defaultValue: false,
+			},
+			createdAt: {
+				type: "date",
+				defaultValue: () => new Date(),
+			},
+			updatedAt: {
+				type: "date",
+				defaultValue: () => new Date(),
+			},
+		},
+	},
 
-	Author: table("author", (t) => ({
-		name: t.text().notNull(),
-		email: t.text().notNull().unique(),
-		bio: t.text().nullable(),
-	})),
-}))
-	// Test plugin system
-	.use(commentsPlugin);
+	author: {
+		modelName: "author",
+		fields: {
+			name: {
+				type: "string",
+				required: true,
+			},
+			email: {
+				type: "string",
+				required: true,
+				unique: true,
+			},
+			bio: {
+				type: "string",
+				required: false,
+			},
+		},
+	},
+}).use(todoPlugin); // Test plugin system
 
 export default blogDb;

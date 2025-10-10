@@ -64,42 +64,110 @@ async function fileExists(filePath: string): Promise<boolean> {
 function createExampleSchema(): string {
 	return `import { defineDb } from "@better-db/core";
 
-// Define your database schema
-export const db = defineDb(({ table }) => ({
+// Define your database schema using Better Auth schema syntax
+export const db = defineDb({
   // Example: Blog post table
-  Post: table("post", (t) => ({
-    id: t.id(),  // Automatically becomes primary key
-    title: t.text().notNull(),
-    content: t.text().notNull(),
-    published: t.boolean().defaultValue(false),
-    authorId: t.text().notNull(), // Foreign key to author
-    createdAt: t.timestamp().defaultNow(),
-    updatedAt: t.timestamp().defaultNow(),
-  })),
+  post: {
+    modelName: "post",
+    fields: {
+      title: {
+        type: "string",
+        required: true,
+      },
+      content: {
+        type: "string",
+        required: true,
+      },
+      published: {
+        type: "boolean",
+        defaultValue: false,
+      },
+      authorId: {
+        type: "string",
+        required: true,
+        references: {
+          model: "author",
+          field: "id",
+          onDelete: "cascade",
+        },
+      },
+      createdAt: {
+        type: "date",
+        defaultValue: () => new Date(),
+      },
+      updatedAt: {
+        type: "date",
+        defaultValue: () => new Date(),
+      },
+    },
+  },
 
-  // Example: Author table  
-  Author: table("author", (t) => ({
-    id: t.id(),  // Automatically becomes primary key
-    name: t.text().notNull(),
-    email: t.text().notNull().unique(),
-    bio: t.text().nullable(),
-    createdAt: t.timestamp().defaultNow(),
-  })),
+  // Example: Author table
+  author: {
+    modelName: "author",
+    fields: {
+      name: {
+        type: "string",
+        required: true,
+      },
+      email: {
+        type: "string",
+        required: true,
+        unique: true,
+      },
+      bio: {
+        type: "string",
+        required: false,
+      },
+      createdAt: {
+        type: "date",
+        defaultValue: () => new Date(),
+      },
+    },
+  },
 
-  // Example: Category table with many-to-many relationship
-  Category: table("category", (t) => ({
-    id: t.id(),  // Automatically becomes primary key
-    name: t.text().notNull().unique(),
-    slug: t.text().notNull().unique(),
-  })),
+  // Example: Category table
+  category: {
+    modelName: "category",
+    fields: {
+      name: {
+        type: "string",
+        required: true,
+        unique: true,
+      },
+      slug: {
+        type: "string",
+        required: true,
+        unique: true,
+      },
+    },
+  },
 
   // Junction table for posts-categories relationship
-  PostCategory: table("post_category", (t) => ({
-    id: t.id(),  // Automatically becomes primary key
-    postId: t.text().notNull().references("post"),
-    categoryId: t.text().notNull().references("category"),
-  })),
-}));
+  postCategory: {
+    modelName: "post_category",
+    fields: {
+      postId: {
+        type: "string",
+        required: true,
+        references: {
+          model: "post",
+          field: "id",
+          onDelete: "cascade",
+        },
+      },
+      categoryId: {
+        type: "string",
+        required: true,
+        references: {
+          model: "category",
+          field: "id",
+          onDelete: "cascade",
+        },
+      },
+    },
+  },
+});
 
 export default db;
 `;

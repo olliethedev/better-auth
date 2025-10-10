@@ -27,12 +27,15 @@ describe("E2E CLI tests", () => {
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Product: table("product", (t) => ({
-    name: t.text().notNull(),
-    price: t.number().notNull(),
-  })),
-}));
+export default defineDb({
+  product: {
+    modelName: "product",
+    fields: {
+      name: { type: "string", required: true },
+      price: { type: "number", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -67,11 +70,14 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Article: table("article", (t) => ({
-    title: t.text().notNull(),
-  })),
-}));
+export default defineDb({
+  article: {
+    modelName: "article",
+    fields: {
+      title: { type: "string", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -101,11 +107,14 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Task: table("task", (t) => ({
-    title: t.text().notNull(),
-  })),
-}));
+export default defineDb({
+  task: {
+    modelName: "task",
+    fields: {
+      title: { type: "string", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -136,12 +145,15 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Task: table("task", (t) => ({
-    title: t.text().notNull(),
-    completed: t.boolean().defaultValue(false),
-  })),
-}));
+export default defineDb({
+  task: {
+    modelName: "task",
+    fields: {
+      title: { type: "string", required: true },
+      completed: { type: "boolean", defaultValue: false },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -178,12 +190,15 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Item: table("item", (t) => ({
-    name: t.text().notNull(),
-    quantity: t.number().notNull(),
-  })),
-}));
+export default defineDb({
+  item: {
+    modelName: "item",
+    fields: {
+      name: { type: "string", required: true },
+      quantity: { type: "number", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -220,11 +235,14 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Priority: table("priority", (t) => ({
-    level: t.number().notNull(),
-  })),
-}));
+export default defineDb({
+  priority: {
+    modelName: "priority",
+    fields: {
+      level: { type: "number", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -264,12 +282,15 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Product: table("product", (t) => ({
-    name: t.text().notNull(),
-    price: t.number().notNull(),
-  })),
-}));
+export default defineDb({
+  product: {
+    modelName: "product",
+    fields: {
+      name: { type: "string", required: true },
+      price: { type: "number", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -309,12 +330,15 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Order: table("orders", (t) => ({
-    total: t.number().notNull(),
-    status: t.text().notNull(),
-  })),
-}));
+export default defineDb({
+  order: {
+    modelName: "orders",
+    fields: {
+      total: { type: "number", required: true },
+      status: { type: "string", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -354,12 +378,15 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Customer: table("customer", (t) => ({
-    email: t.text().notNull(),
-    name: t.text().notNull(),
-  })),
-}));
+export default defineDb({
+  customer: {
+    modelName: "customer",
+    fields: {
+      email: { type: "string", required: true },
+      name: { type: "string", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -398,12 +425,15 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Invoice: table("invoice", (t) => ({
-    amount: t.number().notNull(),
-    paid: t.boolean().defaultValue(false),
-  })),
-}));
+export default defineDb({
+  invoice: {
+    modelName: "invoice",
+    fields: {
+      amount: { type: "number", required: true },
+      paid: { type: "boolean", defaultValue: false },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -433,12 +463,15 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Receipt: table("receipt", (t) => ({
-    total: t.number().notNull(),
-    date: t.timestamp().notNull(),
-  })),
-}));
+export default defineDb({
+  receipt: {
+    modelName: "receipt",
+    fields: {
+      total: { type: "number", required: true },
+      date: { type: "date", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -468,11 +501,14 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Custom: table("custom", (t) => ({
-    data: t.text().notNull(),
-  })),
-}));
+export default defineDb({
+  custom: {
+    modelName: "custom",
+    fields: {
+      data: { type: "string", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -501,11 +537,14 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  EmptyCheckTable: table("empty_check_table", (t) => ({
-    data: t.text().notNull(),
-  })),
-}));
+export default defineDb({
+  emptyCheckTable: {
+    modelName: "empty_check_table",
+    fields: {
+      data: { type: "string", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -578,17 +617,23 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Product: table("product", (t) => ({
-    name: t.text().notNull(),
-    price: t.number().notNull(),
-    stock: t.number().defaultValue(0),
-  })),
-  Category: table("category", (t) => ({
-    title: t.text().notNull(),
-    description: t.text(),
-  })),
-}));
+export default defineDb({
+  product: {
+    modelName: "product",
+    fields: {
+      name: { type: "string", required: true },
+      price: { type: "number", required: true },
+      stock: { type: "number", defaultValue: 0 },
+    },
+  },
+  category: {
+    modelName: "category",
+    fields: {
+      title: { type: "string", required: true },
+      description: { type: "string", required: false },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -657,11 +702,14 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  MigrateEmpty: table("migrate_empty", (t) => ({
-    data: t.text().notNull(),
-  })),
-}));
+export default defineDb({
+  migrateEmpty: {
+    modelName: "migrate_empty",
+    fields: {
+      data: { type: "string", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -731,16 +779,22 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Warehouse: table("warehouse", (t) => ({
-    location: t.text().notNull(),
-    capacity: t.number().notNull(),
-  })),
-  Inventory: table("inventory", (t) => ({
-    itemId: t.text().notNull(),
-    quantity: t.number().notNull(),
-  })),
-}));
+export default defineDb({
+  warehouse: {
+    modelName: "warehouse",
+    fields: {
+      location: { type: "string", required: true },
+      capacity: { type: "number", required: true },
+    },
+  },
+  inventory: {
+    modelName: "inventory",
+    fields: {
+      itemId: { type: "string", required: true },
+      quantity: { type: "number", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);
@@ -805,12 +859,15 @@ export default defineDb(({ table }) => ({
 			`
 import { defineDb } from "@better-db/core";
 
-export default defineDb(({ table }) => ({
-  Store: table("store", (t) => ({
-    name: t.text().notNull(),
-    address: t.text().notNull(),
-  })),
-}));
+export default defineDb({
+  store: {
+    modelName: "store",
+    fields: {
+      name: { type: "string", required: true },
+      address: { type: "string", required: true },
+    },
+  },
+});
 `,
 			"utf8",
 		);

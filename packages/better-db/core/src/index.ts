@@ -7,21 +7,9 @@ export type {
 	BetterAuthDBSchema,
 } from "@better-auth/core/db";
 
-// Re-export useful utilities from Better Auth
-export { createFieldAttribute } from "better-auth/db";
-
-// Export our new DSL and plugin system
+// Export our schema definition and plugin system
 export { defineDb } from "./define-db";
 export { createDbPlugin } from "./plugin";
-export { table } from "./table";
 
 // Export types for better DX
-export type {
-	DbSchema,
-	DbTable,
-	DbPlugin,
-	TableBuilder,
-	FieldBuilder,
-	Adapter,
-	DefineDbResult,
-} from "./types";
+export type { DbPlugin, Adapter, DatabaseDefinition } from "./types";
