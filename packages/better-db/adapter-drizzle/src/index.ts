@@ -37,8 +37,8 @@ interface CreateDrizzleAdapterConfig {
 /**
  * Helper function to create a Drizzle adapter with Better DB schema
  *
- * This handles the conversion from Better DB schema to the format expected by drizzleAdapter
- * and ensures the schema is properly passed through a plugin so Better Auth can find your models.
+ * This handles passing the Better DB schema to the drizzleAdapter
+ * by injecting it as a plugin so Better Auth can find your models.
  *
  * @example
  * ```ts
@@ -46,18 +46,18 @@ interface CreateDrizzleAdapterConfig {
  * import { createDrizzleAdapter } from "@better-db/adapter-drizzle";
  * import { drizzle } from "drizzle-orm/postgres-js";
  *
- * const db = defineDb(({ table }) => ({
- *   Todo: table("todo", (t) => ({
- *     title: t.text().notNull(),
- *     completed: t.boolean().defaultValue(false),
- *   })),
- * }));
+ * const db = defineDb({
+ *   todo: {
+ *     modelName: "todo",
+ *     fields: {
+ *       title: { type: "string", required: true },
+ *       completed: { type: "boolean", defaultValue: false },
+ *     },
+ *   },
+ * });
  *
  * const drizzleDb = drizzle(connection);
- *
- * const adapter = createDrizzleAdapter(drizzleDb, db, {
- *   provider: "pg",
- * });
+ * const adapter = createDrizzleAdapter(drizzleDb, db, { provider: "pg" });
  * ```
  */
 export function createDrizzleAdapter(
@@ -66,10 +66,6 @@ export function createDrizzleAdapter(
 	config: CreateDrizzleAdapterConfig,
 	options: BetterAuthOptions = {},
 ): (options: BetterAuthOptions) => Adapter {
-	// Convert Better DB schema to Better Auth format
-	const schema = db.toBetterAuthSchema();
-
-	// Return an adapter factory that includes the schema as a plugin
 	return (adapterOptions: BetterAuthOptions = {}) => {
 		const mergedOptions = {
 			...options,
@@ -80,7 +76,7 @@ export function createDrizzleAdapter(
 				// Add Better DB schema as a plugin so getAuthTables can find it
 				{
 					id: "better-db-schema",
-					schema: schema,
+					schema: db.getSchema(),
 				},
 			],
 		};

@@ -1,14 +1,12 @@
-import type { DbPlugin, DbPluginFactory } from "./types";
-import { table } from "./table";
+import type { BetterAuthDBSchema } from "@better-auth/core/db";
+import type { DbPlugin } from "./types";
 
 export function createDbPlugin(
 	name: string,
-	factory: DbPluginFactory,
+	schema: BetterAuthDBSchema,
 ): DbPlugin {
-	const tables = factory({ table });
-
 	return {
 		name,
-		tables,
+		schema,
 	};
 }

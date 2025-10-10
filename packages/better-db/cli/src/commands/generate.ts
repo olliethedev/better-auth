@@ -38,8 +38,8 @@ async function generateAction(options: GenerateOptions) {
 		// 1. Load and validate schema
 		const dbSchema = await loadBetterDbSchema(schemaPath);
 
-		// 2. Convert to Better Auth format
-		const betterAuthSchema = dbSchema.toBetterAuthSchema();
+		// 2. Get Better Auth schema format
+		const betterAuthSchema = dbSchema.getSchema();
 
 		// 3. Create appropriate adapter based on ORM
 		let adapter: any;

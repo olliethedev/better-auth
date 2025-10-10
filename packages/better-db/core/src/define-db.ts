@@ -1,22 +1,24 @@
-import type { DbSchema, DefineDbFactory, DbPlugin } from "./types";
-import { table } from "./table";
+import type { BetterAuthDBSchema } from "@better-auth/core/db";
+import type { DbPlugin } from "./types";
 
 export interface DefineDbResult {
-	schema: DbSchema;
+	schema: BetterAuthDBSchema;
+	plugins: DbPlugin[];
+	getSchema(): BetterAuthDBSchema;
 	use(plugin: DbPlugin): DefineDbResult;
-	getSchema(): DbSchema;
-	// Convert to Better Auth format for CLI compatibility
-	toBetterAuthSchema(): any;
 }
 
 class DefineDbResultImpl implements DefineDbResult {
-	constructor(public schema: DbSchema) {}
+	constructor(
+		public schema: BetterAuthDBSchema,
+		public plugins: DbPlugin[] = [],
+	) {}
 
 	use(plugin: DbPlugin): DefineDbResult {
 		const mergedSchema = { ...this.schema };
 
 		// Merge plugin tables into the main schema
-		for (const [tableName, table] of Object.entries(plugin.tables)) {
+		for (const [tableName, table] of Object.entries(plugin.schema)) {
 			if (mergedSchema[tableName]) {
 				// Merge fields if table already exists
 				mergedSchema[tableName] = {
@@ -31,34 +33,25 @@ class DefineDbResultImpl implements DefineDbResult {
 			}
 		}
 
-		return new DefineDbResultImpl(mergedSchema);
+		return new DefineDbResultImpl(mergedSchema, [...this.plugins, plugin]);
 	}
 
-	getSchema(): DbSchema {
+	getSchema(): BetterAuthDBSchema {
 		return this.schema;
-	}
-
-	// Convert to the format that Better Auth CLI expects
-	toBetterAuthSchema(): any {
-		const betterAuthSchema: any = {};
-
-		for (const [tableName, table] of Object.entries(this.schema)) {
-			// Remove id field for generator compatibility - generators add it automatically
-			const { id, ...fieldsWithoutId } = table.fields;
-
-			betterAuthSchema[tableName] = {
-				fields: fieldsWithoutId,
-				modelName: table.modelName,
-				order: table.order,
-				disableMigrations: table.disableMigrations,
-			};
-		}
-
-		return betterAuthSchema;
 	}
 }
 
-export function defineDb(factory: DefineDbFactory): DefineDbResult {
-	const schema = factory({ table });
-	return new DefineDbResultImpl(schema);
+export function defineDb(
+	schema: BetterAuthDBSchema,
+	options?: { plugins?: DbPlugin[] },
+): DefineDbResult {
+	let result = new DefineDbResultImpl(schema);
+
+	if (options?.plugins) {
+		for (const plugin of options.plugins) {
+			result = result.use(plugin);
+		}
+	}
+
+	return result;
 }

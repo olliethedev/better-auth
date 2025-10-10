@@ -14,33 +14,79 @@ import {
 import { filterAuthTables } from "../src/utils/filter-auth-tables";
 
 // Test plugin
-const testPlugin = createDbPlugin("test-plugin", ({ table }) => ({
-	Comment: table("comment", (t) => ({
-		content: t.text().notNull(),
-		postId: t.text().notNull().references("post"),
-	})),
-	Tag: table("tag", (t) => ({
-		name: t.text().notNull().unique(),
-	})),
-}));
+const testPlugin = createDbPlugin("test-plugin", {
+	comment: {
+		modelName: "comment",
+		fields: {
+			content: {
+				type: "string",
+				required: true,
+			},
+			postId: {
+				type: "string",
+				required: true,
+				references: {
+					model: "post",
+					field: "id",
+					onDelete: "cascade",
+				},
+			},
+		},
+	},
+	tag: {
+		modelName: "tag",
+		fields: {
+			name: {
+				type: "string",
+				required: true,
+				unique: true,
+			},
+		},
+	},
+});
 
 // Test schema
-const testDb = defineDb(({ table }) => ({
-	Post: table("post", (t) => ({
-		title: t.text().notNull(),
-		content: t.text().notNull(),
-		published: t.boolean().defaultValue(false),
-		createdAt: t.timestamp().notNull(),
-	})),
-	Author: table("author", (t) => ({
-		name: t.text().notNull(),
-		email: t.text().notNull().unique(),
-	})),
-})).use(testPlugin);
+const testDb = defineDb({
+	post: {
+		modelName: "post",
+		fields: {
+			title: {
+				type: "string",
+				required: true,
+			},
+			content: {
+				type: "string",
+				required: true,
+			},
+			published: {
+				type: "boolean",
+				defaultValue: false,
+			},
+			createdAt: {
+				type: "date",
+				required: true,
+			},
+		},
+	},
+	author: {
+		modelName: "author",
+		fields: {
+			name: {
+				type: "string",
+				required: true,
+			},
+			email: {
+				type: "string",
+				required: true,
+				unique: true,
+			},
+		},
+	},
+}).use(testPlugin);
 
 describe("Generate Prisma schemas for all databases", () => {
 	it("should generate Prisma schema for PostgreSQL", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		const adapter = prismaAdapter(
 			{},
@@ -63,7 +109,7 @@ describe("Generate Prisma schemas for all databases", () => {
 	});
 
 	it("should generate Prisma schema for MySQL", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		const adapter = prismaAdapter(
 			{},
@@ -86,7 +132,7 @@ describe("Generate Prisma schemas for all databases", () => {
 	});
 
 	it("should generate Prisma schema for SQLite", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		const adapter = prismaAdapter(
 			{},
@@ -109,7 +155,7 @@ describe("Generate Prisma schemas for all databases", () => {
 	});
 
 	it("should generate Prisma schema for MongoDB", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		const adapter = prismaAdapter(
 			{},
@@ -132,7 +178,7 @@ describe("Generate Prisma schemas for all databases", () => {
 	});
 
 	it("should generate Prisma schema with filter-auth", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		const adapter = prismaAdapter(
 			{},
@@ -163,7 +209,7 @@ describe("Generate Prisma schemas for all databases", () => {
 
 describe("Generate Drizzle schemas for all databases", () => {
 	it("should generate Drizzle schema for PostgreSQL", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		const adapter = drizzleAdapter(
 			{},
@@ -189,7 +235,7 @@ describe("Generate Drizzle schemas for all databases", () => {
 	});
 
 	it("should generate Drizzle schema for MySQL", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		const adapter = drizzleAdapter(
 			{},
@@ -215,7 +261,7 @@ describe("Generate Drizzle schemas for all databases", () => {
 	});
 
 	it("should generate Drizzle schema for SQLite", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		const adapter = drizzleAdapter(
 			{},
@@ -241,7 +287,7 @@ describe("Generate Drizzle schemas for all databases", () => {
 	});
 
 	it("should generate Drizzle schema with filter-auth", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		const adapter = drizzleAdapter(
 			{},
@@ -270,7 +316,7 @@ describe("Generate Drizzle schemas for all databases", () => {
 
 describe("Generate Kysely migrations with real database", () => {
 	it("should generate Kysely migrations for SQLite", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		// Use real SQLite database for introspection
 		const sqliteDb = new Database(":memory:");
@@ -292,7 +338,7 @@ describe("Generate Kysely migrations with real database", () => {
 	});
 
 	it("should generate Kysely migrations with filter-auth", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		const sqliteDb = new Database(":memory:");
 
@@ -321,7 +367,7 @@ describe("Generate Kysely migrations with real database", () => {
 
 describe("Generate with advanced options", () => {
 	it("should generate Prisma schema with number IDs", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		const adapter = prismaAdapter(
 			{},
@@ -349,7 +395,7 @@ describe("Generate with advanced options", () => {
 	});
 
 	it("should generate Drizzle schema with number IDs", async () => {
-		const betterAuthSchema = testDb.toBetterAuthSchema();
+		const betterAuthSchema = testDb.getSchema();
 
 		const adapter = drizzleAdapter(
 			{},
@@ -377,13 +423,19 @@ describe("Generate with advanced options", () => {
 	});
 
 	it("should handle custom model names", async () => {
-		const customDb = defineDb(({ table }) => ({
-			BlogPost: table("blog_post", (t) => ({
-				title: t.text().notNull(),
-			})),
-		}));
+		const customDb = defineDb({
+			blogPost: {
+				modelName: "blog_post",
+				fields: {
+					title: {
+						type: "string",
+						required: true,
+					},
+				},
+			},
+		});
 
-		const betterAuthSchema = customDb.toBetterAuthSchema();
+		const betterAuthSchema = customDb.getSchema();
 
 		const adapter = prismaAdapter(
 			{},
@@ -406,17 +458,35 @@ describe("Generate with advanced options", () => {
 	});
 
 	it("should handle all field types", async () => {
-		const typesDb = defineDb(({ table }) => ({
-			AllTypes: table("all_types", (t) => ({
-				textField: t.text().notNull(),
-				numberField: t.number().notNull(),
-				boolField: t.boolean().defaultValue(false),
-				dateField: t.timestamp().notNull(),
-				jsonField: t.json().nullable(),
-			})),
-		}));
+		const typesDb = defineDb({
+			allTypes: {
+				modelName: "all_types",
+				fields: {
+					textField: {
+						type: "string",
+						required: true,
+					},
+					numberField: {
+						type: "number",
+						required: true,
+					},
+					boolField: {
+						type: "boolean",
+						defaultValue: false,
+					},
+					dateField: {
+						type: "date",
+						required: true,
+					},
+					jsonField: {
+						type: "json",
+						required: false,
+					},
+				},
+			},
+		});
 
-		const betterAuthSchema = typesDb.toBetterAuthSchema();
+		const betterAuthSchema = typesDb.getSchema();
 
 		const adapter = prismaAdapter(
 			{},
@@ -441,17 +511,37 @@ describe("Generate with advanced options", () => {
 	});
 
 	it("should handle foreign key references", async () => {
-		const refDb = defineDb(({ table }) => ({
-			User: table("user", (t) => ({
-				email: t.text().notNull(),
-			})),
-			Post: table("post", (t) => ({
-				userId: t.text().notNull().references("user"),
-				title: t.text().notNull(),
-			})),
-		}));
+		const refDb = defineDb({
+			user: {
+				modelName: "user",
+				fields: {
+					email: {
+						type: "string",
+						required: true,
+					},
+				},
+			},
+			post: {
+				modelName: "post",
+				fields: {
+					userId: {
+						type: "string",
+						required: true,
+						references: {
+							model: "user",
+							field: "id",
+							onDelete: "cascade",
+						},
+					},
+					title: {
+						type: "string",
+						required: true,
+					},
+				},
+			},
+		});
 
-		const betterAuthSchema = refDb.toBetterAuthSchema();
+		const betterAuthSchema = refDb.getSchema();
 
 		const adapter = prismaAdapter(
 			{},
@@ -475,15 +565,24 @@ describe("Generate with advanced options", () => {
 });
 
 describe("Generate with filter-auth for all ORMs", () => {
-	const simpleDb = defineDb(({ table }) => ({
-		Product: table("product", (t) => ({
-			name: t.text().notNull(),
-			price: t.number().notNull(),
-		})),
-	}));
+	const simpleDb = defineDb({
+		product: {
+			modelName: "product",
+			fields: {
+				name: {
+					type: "string",
+					required: true,
+				},
+				price: {
+					type: "number",
+					required: true,
+				},
+			},
+		},
+	});
 
 	it("should filter auth tables from Prisma output", async () => {
-		const betterAuthSchema = simpleDb.toBetterAuthSchema();
+		const betterAuthSchema = simpleDb.getSchema();
 
 		const adapter = prismaAdapter(
 			{},
@@ -509,7 +608,7 @@ describe("Generate with filter-auth for all ORMs", () => {
 	});
 
 	it("should filter auth tables from Drizzle output", async () => {
-		const betterAuthSchema = simpleDb.toBetterAuthSchema();
+		const betterAuthSchema = simpleDb.getSchema();
 
 		const adapter = drizzleAdapter(
 			{},
@@ -535,11 +634,14 @@ describe("Generate with filter-auth for all ORMs", () => {
 
 describe("Edge cases and error handling", () => {
 	it("should handle empty plugin schema", async () => {
-		const emptyDb = defineDb(({ table }) => ({
-			Single: table("single", (t) => ({})),
-		}));
+		const emptyDb = defineDb({
+			single: {
+				modelName: "single",
+				fields: {},
+			},
+		});
 
-		const betterAuthSchema = emptyDb.toBetterAuthSchema();
+		const betterAuthSchema = emptyDb.getSchema();
 
 		const adapter = prismaAdapter(
 			{},
@@ -560,16 +662,32 @@ describe("Edge cases and error handling", () => {
 	});
 
 	it("should handle nullable and unique constraints", async () => {
-		const constraintsDb = defineDb(({ table }) => ({
-			Item: table("item", (t) => ({
-				required: t.text().notNull(),
-				optional: t.text().nullable(),
-				uniqueField: t.text().unique(),
-				uniqueOptional: t.text().nullable().unique(),
-			})),
-		}));
+		const constraintsDb = defineDb({
+			item: {
+				modelName: "item",
+				fields: {
+					required: {
+						type: "string",
+						required: true,
+					},
+					optional: {
+						type: "string",
+						required: false,
+					},
+					uniqueField: {
+						type: "string",
+						unique: true,
+					},
+					uniqueOptional: {
+						type: "string",
+						required: false,
+						unique: true,
+					},
+				},
+			},
+		});
 
-		const betterAuthSchema = constraintsDb.toBetterAuthSchema();
+		const betterAuthSchema = constraintsDb.getSchema();
 
 		const adapter = prismaAdapter(
 			{},

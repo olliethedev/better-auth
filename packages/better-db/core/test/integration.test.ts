@@ -3,77 +3,149 @@ import { describe, it, expect } from "vitest";
 import { defineDb, createDbPlugin } from "../src/index";
 
 describe("better-db integration", () => {
-	it("should create schema with defineDb DSL", () => {
-		const blogDb = defineDb(({ table }) => ({
-			Post: table("post", (t) => ({
-				title: t.text().notNull(),
-				body: t.text().notNull(),
-				authorId: t.text().notNull(),
-				published: t.boolean().defaultValue(false),
-				createdAt: t.timestamp().defaultNow(),
-				updatedAt: t.timestamp().defaultNow(),
-			})),
-
-			Author: table("author", (t) => ({
-				name: t.text().notNull(),
-				email: t.text().notNull().unique(),
-				bio: t.text().nullable(),
-			})),
-		}));
+	it("should create schema with defineDb", () => {
+		const blogDb = defineDb({
+			post: {
+				modelName: "post",
+				fields: {
+					title: {
+						type: "string",
+						required: true,
+					},
+					body: {
+						type: "string",
+						required: true,
+					},
+					authorId: {
+						type: "string",
+						required: true,
+					},
+					published: {
+						type: "boolean",
+						defaultValue: false,
+					},
+					createdAt: {
+						type: "date",
+						defaultValue: () => new Date(),
+					},
+					updatedAt: {
+						type: "date",
+						defaultValue: () => new Date(),
+					},
+				},
+			},
+			author: {
+				modelName: "author",
+				fields: {
+					name: {
+						type: "string",
+						required: true,
+					},
+					email: {
+						type: "string",
+						required: true,
+						unique: true,
+					},
+					bio: {
+						type: "string",
+						required: false,
+					},
+				},
+			},
+		});
 
 		const schema = blogDb.getSchema();
 		expect(schema).toBeDefined();
-		expect(Object.keys(schema)).toContain("Post");
-		expect(Object.keys(schema)).toContain("Author");
+		expect(Object.keys(schema)).toContain("post");
+		expect(Object.keys(schema)).toContain("author");
 	});
 
 	it("should add plugin tables to schema", () => {
-		// Create a simple test plugin inline (avoid circular dependency with plugins package)
-		const testPlugin = createDbPlugin("test", ({ table }) => ({
-			Comment: table("comment", (t) => ({
-				content: t.text().notNull(),
-			})),
-		}));
+		// Create a simple test plugin inline
+		const testPlugin = createDbPlugin("test", {
+			comment: {
+				modelName: "comment",
+				fields: {
+					content: {
+						type: "string",
+						required: true,
+					},
+				},
+			},
+		});
 
-		const blogDb = defineDb(({ table }) => ({
-			Post: table("post", (t) => ({
-				title: t.text().notNull(),
-			})),
-		})).use(testPlugin);
+		const blogDb = defineDb({
+			post: {
+				modelName: "post",
+				fields: {
+					title: {
+						type: "string",
+						required: true,
+					},
+				},
+			},
+		}).use(testPlugin);
 
 		const schema = blogDb.getSchema();
-		expect(Object.keys(schema)).toContain("Post");
-		expect(Object.keys(schema)).toContain("Comment");
+		expect(Object.keys(schema)).toContain("post");
+		expect(Object.keys(schema)).toContain("comment");
 	});
 
 	it("should create correct field attributes", () => {
-		const blogDb = defineDb(({ table }) => ({
-			Post: table("post", (t) => ({
-				title: t.text().notNull(),
-				email: t.text().unique(),
-			})),
-		}));
+		const blogDb = defineDb({
+			post: {
+				modelName: "post",
+				fields: {
+					title: {
+						type: "string",
+						required: true,
+					},
+					email: {
+						type: "string",
+						unique: true,
+					},
+				},
+			},
+		});
 
 		const schema = blogDb.getSchema();
-		const postTable = schema.Post;
+		const postTable = schema.post;
 
 		expect(postTable).toBeDefined();
-		expect(postTable.fields.id).toBeDefined();
-		expect(postTable.fields.id.type).toBe("string");
 		expect(postTable.fields.title.required).toBe(true);
 		expect(postTable.fields.email.unique).toBe(true);
 	});
 
-	it("should convert to Better Auth schema format", () => {
-		const blogDb = defineDb(({ table }) => ({
-			Post: table("post", (t) => ({
-				title: t.text().notNull(),
-			})),
-		}));
+	it("should support plugins via options", () => {
+		const testPlugin = createDbPlugin("test", {
+			tag: {
+				modelName: "tag",
+				fields: {
+					name: {
+						type: "string",
+						required: true,
+					},
+				},
+			},
+		});
 
-		const betterAuthSchema = blogDb.toBetterAuthSchema();
-		expect(betterAuthSchema).toBeDefined();
-		expect(Object.keys(betterAuthSchema)).toContain("Post");
-		expect(betterAuthSchema.Post.fields).toBeDefined();
+		const blogDb = defineDb(
+			{
+				post: {
+					modelName: "post",
+					fields: {
+						title: {
+							type: "string",
+							required: true,
+						},
+					},
+				},
+			},
+			{ plugins: [testPlugin] },
+		);
+
+		const schema = blogDb.getSchema();
+		expect(Object.keys(schema)).toContain("post");
+		expect(Object.keys(schema)).toContain("tag");
 	});
 });

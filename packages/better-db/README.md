@@ -27,22 +27,47 @@ Define your schema:
 // db.ts
 import { defineDb } from "@better-db/core";
 
-export const db = defineDb(({ table }) => ({
-  post: table("post", (t) => ({
-    id: t.id(),
-    title: t.text().notNull(),
-    content: t.text().notNull(),
-    published: t.boolean().defaultValue(false),
-    authorId: t.text().notNull(),
-    createdAt: t.timestamp().defaultNow(),
-  })),
-
-  author: table("author", (t) => ({
-    id: t.id(),
-    name: t.text().notNull(),
-    email: t.text().notNull().unique(),
-  })),
-}));
+export const db = defineDb({
+  post: {
+    modelName: "post",
+    fields: {
+      title: {
+        type: "string",
+        required: true,
+      },
+      content: {
+        type: "string",
+        required: true,
+      },
+      published: {
+        type: "boolean",
+        defaultValue: false,
+      },
+      authorId: {
+        type: "string",
+        required: true,
+      },
+      createdAt: {
+        type: "date",
+        defaultValue: () => new Date(),
+      },
+    },
+  },
+  author: {
+    modelName: "author",
+    fields: {
+      name: {
+        type: "string",
+        required: true,
+      },
+      email: {
+        type: "string",
+        required: true,
+        unique: true,
+      },
+    },
+  },
+});
 
 export default db;
 ```
@@ -133,29 +158,40 @@ npx better-db migrate --config=db.ts --output=migrations.sql --filter-auth --dat
 ## Field Types
 
 ```typescript
-table("example", (t) => ({
-  // Basic types
-  text: t.text(),
-  number: t.number(),
-  boolean: t.boolean(),
-  date: t.date(),
-  json: t.json(),
-  
-  // ID field (auto primary key)
-  id: t.id(),
-  
-  // Modifiers
-  required: t.text().notNull(),
-  optional: t.text().nullable(),
-  unique: t.text().unique(),
-  
-  // Defaults
-  active: t.boolean().defaultValue(false),
-  createdAt: t.timestamp().defaultNow(),
-  
-  // References
-  userId: t.text().references("user"),
-}))
+defineDb({
+  example: {
+    modelName: "example",
+    fields: {
+      // Basic types
+      textField: { type: "string" },
+      numberField: { type: "number" },
+      booleanField: { type: "boolean" },
+      dateField: { type: "date" },
+      jsonField: { type: "json" },
+      
+      // Required/Optional
+      required: { type: "string", required: true },
+      optional: { type: "string", required: false },
+      
+      // Unique
+      uniqueField: { type: "string", unique: true },
+      
+      // Defaults
+      active: { type: "boolean", defaultValue: false },
+      createdAt: { type: "date", defaultValue: () => new Date() },
+      
+      // References
+      userId: {
+        type: "string",
+        references: {
+          model: "user",
+          field: "id",
+          onDelete: "cascade",
+        },
+      },
+    },
+  },
+})
 ```
 
 ## Adapter API
@@ -188,11 +224,16 @@ Extend your schema with reusable plugins:
 
 ```typescript
 import { defineDb } from "@better-db/core";
-import { commentsPlugin } from "@better-db/plugins";
+import { todoPlugin } from "@better-db/plugins";
 
-export const db = defineDb(({ table }) => ({
-  // your tables
-})).use(commentsPlugin);
+export const db = defineDb({
+  post: {
+    modelName: "post",
+    fields: {
+      title: { type: "string", required: true },
+    },
+  },
+}).use(todoPlugin);
 ```
 
 Create custom plugins:
@@ -200,12 +241,18 @@ Create custom plugins:
 ```typescript
 import { createDbPlugin } from "@better-db/core";
 
-export const tagsPlugin = createDbPlugin("tags", ({ table }) => ({
-  tag: table("tag", (t) => ({
-    id: t.id(),
-    name: t.text().notNull().unique(),
-  })),
-}));
+export const tagsPlugin = createDbPlugin("tags", {
+  tag: {
+    modelName: "tag",
+    fields: {
+      name: {
+        type: "string",
+        required: true,
+        unique: true,
+      },
+    },
+  },
+});
 ```
 
 ## Available Adapters
@@ -257,9 +304,15 @@ export const auth = betterAuth({
 });
 
 // After
-export const db = defineDb(({ table }) => ({
-  // your tables
-}));
+export const db = defineDb({
+  // your tables using Better Auth schema format
+  post: {
+    modelName: "post",
+    fields: {
+      title: { type: "string", required: true },
+    },
+  },
+});
 ```
 
 Update CLI:
@@ -279,62 +332,176 @@ npx better-db generate
 ```typescript
 import { defineDb } from "@better-db/core";
 
-export const db = defineDb(({ table }) => ({
-  post: table("post", (t) => ({
-    id: t.id(),
-    title: t.text().notNull(),
-    slug: t.text().notNull().unique(),
-    content: t.text().notNull(),
-    published: t.boolean().defaultValue(false),
-    authorId: t.text().notNull().references("author"),
-    createdAt: t.timestamp().defaultNow(),
-  })),
-
-  author: table("author", (t) => ({
-    id: t.id(),
-    name: t.text().notNull(),
-    email: t.text().notNull().unique(),
-    bio: t.text().nullable(),
-  })),
-
-  category: table("category", (t) => ({
-    id: t.id(),
-    name: t.text().notNull(),
-    slug: t.text().notNull().unique(),
-  })),
-}));
+export const db = defineDb({
+  post: {
+    modelName: "post",
+    fields: {
+      title: {
+        type: "string",
+        required: true,
+      },
+      slug: {
+        type: "string",
+        required: true,
+        unique: true,
+      },
+      content: {
+        type: "string",
+        required: true,
+      },
+      published: {
+        type: "boolean",
+        defaultValue: false,
+      },
+      authorId: {
+        type: "string",
+        required: true,
+        references: {
+          model: "author",
+          field: "id",
+          onDelete: "cascade",
+        },
+      },
+      createdAt: {
+        type: "date",
+        defaultValue: () => new Date(),
+      },
+    },
+  },
+  author: {
+    modelName: "author",
+    fields: {
+      name: {
+        type: "string",
+        required: true,
+      },
+      email: {
+        type: "string",
+        required: true,
+        unique: true,
+      },
+      bio: {
+        type: "string",
+        required: false,
+      },
+    },
+  },
+  category: {
+    modelName: "category",
+    fields: {
+      name: {
+        type: "string",
+        required: true,
+      },
+      slug: {
+        type: "string",
+        required: true,
+        unique: true,
+      },
+    },
+  },
+});
 ```
 
 ### E-commerce
 
 ```typescript
-export const db = defineDb(({ table }) => ({
-  product: table("product", (t) => ({
-    id: t.id(),
-    name: t.text().notNull(),
-    slug: t.text().notNull().unique(),
-    price: t.number().notNull(),
-    inventory: t.number().defaultValue(0),
-    categoryId: t.text().nullable().references("category"),
-  })),
-
-  order: table("order", (t) => ({
-    id: t.id(),
-    orderNumber: t.text().notNull().unique(),
-    customerId: t.text().notNull().references("customer"),
-    status: t.text().notNull().defaultValue("pending"),
-    total: t.number().notNull(),
-    createdAt: t.timestamp().defaultNow(),
-  })),
-
-  orderItem: table("order_item", (t) => ({
-    id: t.id(),
-    orderId: t.text().notNull().references("order"),
-    productId: t.text().notNull().references("product"),
-    quantity: t.number().notNull(),
-    price: t.number().notNull(),
-  })),
-}));
+export const db = defineDb({
+  product: {
+    modelName: "product",
+    fields: {
+      name: {
+        type: "string",
+        required: true,
+      },
+      slug: {
+        type: "string",
+        required: true,
+        unique: true,
+      },
+      price: {
+        type: "number",
+        required: true,
+      },
+      inventory: {
+        type: "number",
+        defaultValue: 0,
+      },
+      categoryId: {
+        type: "string",
+        required: false,
+        references: {
+          model: "category",
+          field: "id",
+          onDelete: "set null",
+        },
+      },
+    },
+  },
+  order: {
+    modelName: "order",
+    fields: {
+      orderNumber: {
+        type: "string",
+        required: true,
+        unique: true,
+      },
+      customerId: {
+        type: "string",
+        required: true,
+        references: {
+          model: "customer",
+          field: "id",
+          onDelete: "cascade",
+        },
+      },
+      status: {
+        type: "string",
+        required: true,
+        defaultValue: "pending",
+      },
+      total: {
+        type: "number",
+        required: true,
+      },
+      createdAt: {
+        type: "date",
+        defaultValue: () => new Date(),
+      },
+    },
+  },
+  orderItem: {
+    modelName: "order_item",
+    fields: {
+      orderId: {
+        type: "string",
+        required: true,
+        references: {
+          model: "order",
+          field: "id",
+          onDelete: "cascade",
+        },
+      },
+      productId: {
+        type: "string",
+        required: true,
+        references: {
+          model: "product",
+          field: "id",
+          onDelete: "cascade",
+        },
+      },
+      quantity: {
+        type: "number",
+        required: true,
+      },
+      price: {
+        type: "number",
+        required: true,
+      },
+    },
+  },
+});
 ```
 
 ## Resources

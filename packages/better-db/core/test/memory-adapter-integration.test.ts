@@ -16,37 +16,61 @@ describe("Memory Adapter Integration with Better DB", () => {
 
 	beforeEach(() => {
 		// Define a schema similar to the user's
-		db = defineDb(({ table }) => ({
-			Message: table("message", (t) => ({
-				title: t.text().notNull(),
-				content: t.text().notNull(),
-				createdAt: t.timestamp().defaultNow(),
-			})),
-			Todo: table("todo", (t) => ({
-				title: t.text().notNull(),
-				completed: t.boolean().defaultValue(false),
-				createdAt: t.timestamp().defaultNow(),
-			})),
-		}));
+		db = defineDb({
+			message: {
+				modelName: "message",
+				fields: {
+					title: {
+						type: "string",
+						required: true,
+					},
+					content: {
+						type: "string",
+						required: true,
+					},
+					createdAt: {
+						type: "date",
+						defaultValue: () => new Date(),
+					},
+				},
+			},
+			todo: {
+				modelName: "todo",
+				fields: {
+					title: {
+						type: "string",
+						required: true,
+					},
+					completed: {
+						type: "boolean",
+						defaultValue: false,
+					},
+					createdAt: {
+						type: "date",
+						defaultValue: () => new Date(),
+					},
+				},
+			},
+		});
 
-		// Convert to Better Auth schema
-		schema = db.toBetterAuthSchema();
+		// Get Better Auth schema
+		schema = db.getSchema();
 	});
 
-	it("should convert Better DB schema to Better Auth format correctly", () => {
+	it("should get Better DB schema in Better Auth format correctly", () => {
 		expect(schema).toBeDefined();
-		expect(Object.keys(schema)).toContain("Todo");
-		expect(Object.keys(schema)).toContain("Message");
+		expect(Object.keys(schema)).toContain("todo");
+		expect(Object.keys(schema)).toContain("message");
 
-		// Check Todo table structure
-		expect(schema.Todo).toBeDefined();
-		expect(schema.Todo.modelName).toBe("todo");
-		expect(schema.Todo.fields).toBeDefined();
+		// Check todo table structure
+		expect(schema.todo).toBeDefined();
+		expect(schema.todo.modelName).toBe("todo");
+		expect(schema.todo.fields).toBeDefined();
 
-		// Check Message table structure
-		expect(schema.Message).toBeDefined();
-		expect(schema.Message.modelName).toBe("message");
-		expect(schema.Message.fields).toBeDefined();
+		// Check message table structure
+		expect(schema.message).toBeDefined();
+		expect(schema.message.modelName).toBe("message");
+		expect(schema.message.fields).toBeDefined();
 	});
 
 	it("should initialize memory DB with correct model names", () => {
@@ -63,16 +87,16 @@ describe("Memory Adapter Integration with Better DB", () => {
 		expect(memoryDB.message).toEqual([]);
 	});
 
-	it("should NOT have capitalized keys in memory DB", () => {
+	it("should have lowercase keys in memory DB", () => {
 		memoryDB = {};
 		for (const [key, tableConfig] of Object.entries(schema)) {
 			const tableName = (tableConfig as any).modelName || key;
 			memoryDB[tableName] = [];
 		}
 
-		// This is the issue - we should NOT have "Todo" or "Message"
-		expect(Object.keys(memoryDB)).not.toContain("Todo");
-		expect(Object.keys(memoryDB)).not.toContain("Message");
+		// Keys should be lowercase (modelName)
+		expect(Object.keys(memoryDB)).toContain("todo");
+		expect(Object.keys(memoryDB)).toContain("message");
 	});
 
 	it("should create adapter with minimal options including schema", () => {
@@ -101,7 +125,7 @@ describe("Memory Adapter Integration with Better DB", () => {
 		expect(adapter.findMany).toBeDefined();
 	});
 
-	it("should be able to create a record using capitalized model name", async () => {
+	it("should be able to create a record using model name", async () => {
 		memoryDB = {};
 		for (const [key, tableConfig] of Object.entries(schema)) {
 			const tableName = (tableConfig as any).modelName || key;
@@ -119,9 +143,9 @@ describe("Memory Adapter Integration with Better DB", () => {
 
 		adapter = memoryAdapter(memoryDB)(options as any);
 
-		// Try to create with capitalized "Todo" - this should work
+		// Create with schema key "todo"
 		const todo = await adapter.create({
-			model: "Todo",
+			model: "todo",
 			data: {
 				title: "Test Todo",
 				completed: false,
@@ -133,7 +157,7 @@ describe("Memory Adapter Integration with Better DB", () => {
 		expect(todo.title).toBe("Test Todo");
 	});
 
-	it("should be able to query with capitalized model name", async () => {
+	it("should be able to query with model name", async () => {
 		memoryDB = {};
 		for (const [key, tableConfig] of Object.entries(schema)) {
 			const tableName = (tableConfig as any).modelName || key;
@@ -153,7 +177,7 @@ describe("Memory Adapter Integration with Better DB", () => {
 
 		// Create a todo first
 		await adapter.create({
-			model: "Todo",
+			model: "todo",
 			data: {
 				title: "Test Todo",
 				completed: false,
@@ -161,9 +185,9 @@ describe("Memory Adapter Integration with Better DB", () => {
 			},
 		});
 
-		// Now try to query with "Todo" - this is where the error occurs
+		// Now try to query with "todo"
 		const todos = await adapter.findMany({
-			model: "Todo",
+			model: "todo",
 			sortBy: {
 				field: "createdAt",
 				direction: "desc",
@@ -187,10 +211,10 @@ describe("Memory Adapter Integration with Better DB", () => {
 
 		adapter = memoryAdapter(memoryDB)(emptyOptions as any);
 
-		// This should fail with "Model 'Todo' not found in schema"
+		// This should fail with "Model 'todo' not found in schema"
 		await expect(async () => {
 			await adapter.findMany({
-				model: "Todo",
+				model: "todo",
 				sortBy: {
 					field: "createdAt",
 					direction: "desc",
@@ -199,7 +223,7 @@ describe("Memory Adapter Integration with Better DB", () => {
 		}).rejects.toThrow();
 	});
 
-	it("should work with lowercase model names too", async () => {
+	it("should work with model names", async () => {
 		memoryDB = {};
 		for (const [key, tableConfig] of Object.entries(schema)) {
 			const tableName = (tableConfig as any).modelName || key;
@@ -217,10 +241,8 @@ describe("Memory Adapter Integration with Better DB", () => {
 
 		adapter = memoryAdapter(memoryDB)(options as any);
 
-		// The adapter resolves "todo" to "Todo" (schema key) via modelName lookup
-		// So we can actually use either "Todo" or the modelName directly
 		await adapter.create({
-			model: "Todo", // Use capitalized for now since lowercase needs more complex resolution
+			model: "todo",
 			data: {
 				title: "Test Todo",
 				completed: false,
@@ -228,9 +250,9 @@ describe("Memory Adapter Integration with Better DB", () => {
 			},
 		});
 
-		// Query with capitalized
+		// Query with lowercase
 		const todos = await adapter.findMany({
-			model: "Todo",
+			model: "todo",
 			sortBy: {
 				field: "createdAt",
 				direction: "desc",
@@ -241,7 +263,7 @@ describe("Memory Adapter Integration with Better DB", () => {
 		expect(todos.length).toBe(1);
 	});
 
-	it("should demonstrate schema key vs modelName difference", () => {
+	it("should demonstrate schema key equals modelName now", () => {
 		const schemaEntries = Object.entries(schema);
 
 		for (const [schemaKey, tableConfig] of schemaEntries) {
@@ -249,14 +271,12 @@ describe("Memory Adapter Integration with Better DB", () => {
 
 			console.log(`Schema Key: "${schemaKey}", Model Name: "${modelName}"`);
 
-			// Schema keys are capitalized
-			expect(schemaKey).toMatch(/^[A-Z]/);
-
-			// Model names are lowercase
+			// Both should be lowercase now
+			expect(schemaKey).toMatch(/^[a-z]/);
 			expect(modelName).toMatch(/^[a-z]/);
 
-			// They should be different
-			expect(schemaKey.toLowerCase()).toBe(modelName);
+			// They should be the same
+			expect(schemaKey).toBe(modelName);
 		}
 	});
 
@@ -270,11 +290,9 @@ describe("Memory Adapter Integration with Better DB", () => {
 		console.log("Memory DB keys:", Object.keys(memoryDB));
 		console.log("Schema keys:", Object.keys(schema));
 
-		// Memory DB should have lowercase keys
+		// Memory DB and schema should have same lowercase keys
 		expect(Object.keys(memoryDB)).toEqual(["message", "todo"]);
-
-		// Schema should have capitalized keys
-		expect(Object.keys(schema)).toEqual(["Message", "Todo"]);
+		expect(Object.keys(schema)).toEqual(["message", "todo"]);
 	});
 });
 
@@ -286,26 +304,81 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 
 	beforeEach(() => {
 		// Define a schema with foreign key relationships
-		db = defineDb(({ table }) => ({
-			User: table("user", (t) => ({
-				name: t.text().notNull(),
-				email: t.text().unique().notNull(),
-			})),
-			Post: table("post", (t) => ({
-				title: t.text().notNull(),
-				content: t.text().notNull(),
-				authorId: t.text().references("User", "id").notNull(),
-				createdAt: t.timestamp().defaultNow(),
-			})),
-			Comment: table("comment", (t) => ({
-				content: t.text().notNull(),
-				postId: t.text().references("Post", "id").notNull(),
-				authorId: t.text().references("User", "id").notNull(),
-				createdAt: t.timestamp().defaultNow(),
-			})),
-		}));
+		db = defineDb({
+			user: {
+				modelName: "user",
+				fields: {
+					name: {
+						type: "string",
+						required: true,
+					},
+					email: {
+						type: "string",
+						required: true,
+						unique: true,
+					},
+				},
+			},
+			post: {
+				modelName: "post",
+				fields: {
+					title: {
+						type: "string",
+						required: true,
+					},
+					content: {
+						type: "string",
+						required: true,
+					},
+					authorId: {
+						type: "string",
+						required: true,
+						references: {
+							model: "user",
+							field: "id",
+							onDelete: "cascade",
+						},
+					},
+					createdAt: {
+						type: "date",
+						defaultValue: () => new Date(),
+					},
+				},
+			},
+			comment: {
+				modelName: "comment",
+				fields: {
+					content: {
+						type: "string",
+						required: true,
+					},
+					postId: {
+						type: "string",
+						required: true,
+						references: {
+							model: "post",
+							field: "id",
+							onDelete: "cascade",
+						},
+					},
+					authorId: {
+						type: "string",
+						required: true,
+						references: {
+							model: "user",
+							field: "id",
+							onDelete: "cascade",
+						},
+					},
+					createdAt: {
+						type: "date",
+						defaultValue: () => new Date(),
+					},
+				},
+			},
+		});
 
-		schema = db.toBetterAuthSchema();
+		schema = db.getSchema();
 		memoryDB = {};
 		for (const [key, tableConfig] of Object.entries(schema)) {
 			const tableName = (tableConfig as any).modelName || key;
@@ -325,26 +398,26 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 	});
 
 	it("should define foreign key relationships in schema", () => {
-		expect(schema.Post).toBeDefined();
-		expect(schema.Post.fields.authorId).toBeDefined();
-		expect(schema.Post.fields.authorId.references).toBeDefined();
-		expect(schema.Post.fields.authorId.references.model).toBe("User");
-		expect(schema.Post.fields.authorId.references.field).toBe("id");
+		expect(schema.post).toBeDefined();
+		expect(schema.post.fields.authorId).toBeDefined();
+		expect(schema.post.fields.authorId.references).toBeDefined();
+		expect(schema.post.fields.authorId.references.model).toBe("user");
+		expect(schema.post.fields.authorId.references.field).toBe("id");
 
-		expect(schema.Comment).toBeDefined();
-		expect(schema.Comment.fields.postId).toBeDefined();
-		expect(schema.Comment.fields.postId.references).toBeDefined();
-		expect(schema.Comment.fields.postId.references.model).toBe("Post");
+		expect(schema.comment).toBeDefined();
+		expect(schema.comment.fields.postId).toBeDefined();
+		expect(schema.comment.fields.postId.references).toBeDefined();
+		expect(schema.comment.fields.postId.references.model).toBe("post");
 
-		expect(schema.Comment.fields.authorId).toBeDefined();
-		expect(schema.Comment.fields.authorId.references).toBeDefined();
-		expect(schema.Comment.fields.authorId.references.model).toBe("User");
+		expect(schema.comment.fields.authorId).toBeDefined();
+		expect(schema.comment.fields.authorId.references).toBeDefined();
+		expect(schema.comment.fields.authorId.references.model).toBe("user");
 	});
 
 	it("should create records with foreign key relationships", async () => {
 		// Create a user
 		const user = await adapter.create({
-			model: "User",
+			model: "user",
 			data: {
 				name: "John Doe",
 				email: "john@example.com",
@@ -357,7 +430,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 
 		// Create a post referencing the user
 		const post = await adapter.create({
-			model: "Post",
+			model: "post",
 			data: {
 				title: "My First Post",
 				content: "This is the content",
@@ -372,7 +445,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 
 		// Create a comment referencing both post and user
 		const comment = await adapter.create({
-			model: "Comment",
+			model: "comment",
 			data: {
 				content: "Great post!",
 				postId: post.id,
@@ -389,7 +462,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 	it("should query related records using foreign keys", async () => {
 		// Create test data
 		const user = await adapter.create({
-			model: "User",
+			model: "user",
 			data: {
 				name: "Jane Smith",
 				email: "jane@example.com",
@@ -397,7 +470,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 		});
 
 		const post1 = await adapter.create({
-			model: "Post",
+			model: "post",
 			data: {
 				title: "Post 1",
 				content: "Content 1",
@@ -407,7 +480,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 		});
 
 		const post2 = await adapter.create({
-			model: "Post",
+			model: "post",
 			data: {
 				title: "Post 2",
 				content: "Content 2",
@@ -417,7 +490,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 		});
 
 		await adapter.create({
-			model: "Comment",
+			model: "comment",
 			data: {
 				content: "Comment on post 1",
 				postId: post1.id,
@@ -427,7 +500,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 		});
 
 		await adapter.create({
-			model: "Comment",
+			model: "comment",
 			data: {
 				content: "Comment on post 2",
 				postId: post2.id,
@@ -438,7 +511,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 
 		// Query posts by author
 		const userPosts = await adapter.findMany({
-			model: "Post",
+			model: "post",
 			where: [{ field: "authorId", value: user.id }],
 		});
 
@@ -447,7 +520,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 
 		// Query comments by post
 		const post1Comments = await adapter.findMany({
-			model: "Comment",
+			model: "comment",
 			where: [{ field: "postId", value: post1.id }],
 		});
 
@@ -458,7 +531,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 	it("should support multiple foreign keys to the same table", async () => {
 		// Create two users
 		const author = await adapter.create({
-			model: "User",
+			model: "user",
 			data: {
 				name: "Author",
 				email: "author@example.com",
@@ -466,7 +539,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 		});
 
 		const commenter = await adapter.create({
-			model: "User",
+			model: "user",
 			data: {
 				name: "Commenter",
 				email: "commenter@example.com",
@@ -475,7 +548,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 
 		// Create a post by author
 		const post = await adapter.create({
-			model: "Post",
+			model: "post",
 			data: {
 				title: "Author's Post",
 				content: "Written by author",
@@ -486,7 +559,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 
 		// Create a comment by a different user
 		const comment = await adapter.create({
-			model: "Comment",
+			model: "comment",
 			data: {
 				content: "Comment by another user",
 				postId: post.id,
@@ -502,12 +575,12 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 
 		// Query to ensure they're different
 		const postAuthor = await adapter.findOne({
-			model: "User",
+			model: "user",
 			where: [{ field: "id", value: post.authorId }],
 		});
 
 		const commentAuthor = await adapter.findOne({
-			model: "User",
+			model: "user",
 			where: [{ field: "id", value: comment.authorId }],
 		});
 
@@ -518,7 +591,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 	it("should handle cascading relationships", async () => {
 		// Create a chain of related records
 		const user = await adapter.create({
-			model: "User",
+			model: "user",
 			data: {
 				name: "Test User",
 				email: "test@example.com",
@@ -526,7 +599,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 		});
 
 		const post = await adapter.create({
-			model: "Post",
+			model: "post",
 			data: {
 				title: "Test Post",
 				content: "Test Content",
@@ -536,7 +609,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 		});
 
 		const comment = await adapter.create({
-			model: "Comment",
+			model: "comment",
 			data: {
 				content: "Test Comment",
 				postId: post.id,
@@ -552,13 +625,13 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 
 		// Delete the post
 		await adapter.delete({
-			model: "Post",
+			model: "post",
 			where: [{ field: "id", value: post.id }],
 		});
 
 		// Verify post is deleted
 		const deletedPost = await adapter.findOne({
-			model: "Post",
+			model: "post",
 			where: [{ field: "id", value: post.id }],
 		});
 
@@ -567,7 +640,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 		// Comment still exists (memory adapter doesn't enforce cascade deletes)
 		// This is a limitation of the memory adapter - just documenting the behavior
 		const existingComment = await adapter.findOne({
-			model: "Comment",
+			model: "comment",
 			where: [{ field: "id", value: comment.id }],
 		});
 
@@ -578,17 +651,17 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 	it("should support querying with complex where clauses on foreign keys", async () => {
 		// Create multiple users and posts
 		const user1 = await adapter.create({
-			model: "User",
+			model: "user",
 			data: { name: "User 1", email: "user1@example.com" },
 		});
 
 		const user2 = await adapter.create({
-			model: "User",
+			model: "user",
 			data: { name: "User 2", email: "user2@example.com" },
 		});
 
 		await adapter.create({
-			model: "Post",
+			model: "post",
 			data: {
 				title: "User 1 Post 1",
 				content: "Content",
@@ -598,7 +671,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 		});
 
 		await adapter.create({
-			model: "Post",
+			model: "post",
 			data: {
 				title: "User 1 Post 2",
 				content: "Content",
@@ -608,7 +681,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 		});
 
 		await adapter.create({
-			model: "Post",
+			model: "post",
 			data: {
 				title: "User 2 Post 1",
 				content: "Content",
@@ -619,7 +692,7 @@ describe("Memory Adapter with Foreign Key Relationships", () => {
 
 		// Query posts by multiple authors using "in" operator
 		const posts = await adapter.findMany({
-			model: "Post",
+			model: "post",
 			where: [
 				{ field: "authorId", value: [user1.id, user2.id], operator: "in" },
 			],
