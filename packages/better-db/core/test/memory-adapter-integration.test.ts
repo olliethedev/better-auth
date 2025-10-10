@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "vitest";
-import { defineDb, type DefineDbResult } from "../src/define-db";
+import { defineDb, type DatabaseDefinition } from "../src/define-db";
 import { memoryAdapter } from "better-auth/adapters/memory";
 import { webcrypto } from "node:crypto";
 
@@ -9,7 +9,7 @@ if (!globalThis.crypto) {
 }
 
 describe("Memory Adapter Integration with Better DB", () => {
-	let db: DefineDbResult;
+	let db: DatabaseDefinition;
 	let schema: any;
 	let memoryDB: Record<string, any[]>;
 	let adapter: any;

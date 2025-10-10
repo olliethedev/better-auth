@@ -1,7 +1,7 @@
 // Re-export everything from Better Auth's Prisma adapter
 export * from "better-auth/adapters/prisma";
 
-import type { Adapter, DefineDbResult } from "@better-db/core";
+import type { Adapter, DatabaseDefinition } from "@better-db/core";
 import { prismaAdapter, type PrismaConfig } from "better-auth/adapters/prisma";
 import type { BetterAuthOptions } from "better-auth/types";
 
@@ -33,7 +33,7 @@ import type { BetterAuthOptions } from "better-auth/types";
  */
 export function createPrismaAdapter(
 	prisma: any,
-	db: DefineDbResult,
+	db: DatabaseDefinition,
 	config: PrismaConfig,
 	options: BetterAuthOptions = {},
 ): (options: BetterAuthOptions) => Adapter {

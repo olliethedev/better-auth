@@ -2,7 +2,7 @@
 // Vendored from better-auth for independent publishing
 export * from "./drizzle-adapter";
 
-import type { Adapter, DefineDbResult } from "@better-db/core";
+import type { Adapter, DatabaseDefinition } from "@better-db/core";
 import type { BetterAuthOptions } from "better-auth/types";
 import { drizzleAdapter, type DB } from "./drizzle-adapter";
 
@@ -62,7 +62,7 @@ interface CreateDrizzleAdapterConfig {
  */
 export function createDrizzleAdapter(
 	drizzle: DB,
-	db: DefineDbResult,
+	db: DatabaseDefinition,
 	config: CreateDrizzleAdapterConfig,
 	options: BetterAuthOptions = {},
 ): (options: BetterAuthOptions) => Adapter {

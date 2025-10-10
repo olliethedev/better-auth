@@ -1,7 +1,7 @@
 // Re-export everything from Better Auth's MongoDB adapter
 export * from "better-auth/adapters/mongodb";
 
-import type { Adapter, DefineDbResult } from "@better-db/core";
+import type { Adapter, DatabaseDefinition } from "@better-db/core";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import type { BetterAuthOptions } from "better-auth/types";
 import type { Db } from "mongodb";
@@ -35,7 +35,7 @@ import type { Db } from "mongodb";
  */
 export function createMongoDbAdapter(
 	mongoDb: Db,
-	db: DefineDbResult,
+	db: DatabaseDefinition,
 	options: BetterAuthOptions = {},
 ): (options: BetterAuthOptions) => Adapter {
 	return (adapterOptions: BetterAuthOptions = {}) => {

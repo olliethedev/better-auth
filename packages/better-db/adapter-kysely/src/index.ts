@@ -3,7 +3,7 @@
 export * from "./types";
 export * from "./kysely-adapter";
 
-import type { Adapter, DefineDbResult } from "@better-db/core";
+import type { Adapter, DatabaseDefinition } from "@better-db/core";
 import type { Kysely } from "kysely";
 import type { BetterAuthOptions } from "better-auth/types";
 import { kyselyAdapter } from "./kysely-adapter";
@@ -58,7 +58,7 @@ interface CreateKyselyAdapterConfig {
  */
 export function createKyselyAdapter(
 	kysely: Kysely<any>,
-	db: DefineDbResult,
+	db: DatabaseDefinition,
 	config?: CreateKyselyAdapterConfig,
 	options: BetterAuthOptions = {},
 ): (options: BetterAuthOptions) => Adapter {

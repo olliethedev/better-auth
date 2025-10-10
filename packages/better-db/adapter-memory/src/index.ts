@@ -1,7 +1,7 @@
 // Re-export everything from Better Auth's Memory adapter
 export * from "better-auth/adapters/memory";
 
-import type { Adapter, DefineDbResult } from "@better-db/core";
+import type { Adapter, DatabaseDefinition } from "@better-db/core";
 import { memoryAdapter } from "better-auth/adapters/memory";
 import type { BetterAuthOptions } from "better-auth/types";
 
@@ -30,7 +30,7 @@ import type { BetterAuthOptions } from "better-auth/types";
  * ```
  */
 export function createMemoryAdapter(
-	db: DefineDbResult,
+	db: DatabaseDefinition,
 	options: BetterAuthOptions = {},
 ): (options: BetterAuthOptions) => Adapter {
 	const schema = db.getSchema();

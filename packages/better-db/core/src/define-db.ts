@@ -1,20 +1,20 @@
 import type { BetterAuthDBSchema } from "@better-auth/core/db";
 import type { DbPlugin } from "./types";
 
-export interface DefineDbResult {
+export interface DatabaseDefinition {
 	schema: BetterAuthDBSchema;
 	plugins: DbPlugin[];
 	getSchema(): BetterAuthDBSchema;
-	use(plugin: DbPlugin): DefineDbResult;
+	use(plugin: DbPlugin): DatabaseDefinition;
 }
 
-class DefineDbResultImpl implements DefineDbResult {
+class DefineDbResultImpl implements DatabaseDefinition {
 	constructor(
 		public schema: BetterAuthDBSchema,
 		public plugins: DbPlugin[] = [],
 	) {}
 
-	use(plugin: DbPlugin): DefineDbResult {
+	use(plugin: DbPlugin): DatabaseDefinition {
 		const mergedSchema = { ...this.schema };
 
 		// Merge plugin tables into the main schema
@@ -44,7 +44,7 @@ class DefineDbResultImpl implements DefineDbResult {
 export function defineDb(
 	schema: BetterAuthDBSchema,
 	options?: { plugins?: DbPlugin[] },
-): DefineDbResult {
+): DatabaseDefinition {
 	let result = new DefineDbResultImpl(schema);
 
 	if (options?.plugins) {
